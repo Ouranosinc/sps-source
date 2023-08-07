@@ -2,9 +2,11 @@
 
 set -e
 
+
 SPS_DBASE="sps_dbase-6.3.tar.gz"
 SPS_DBASE_URL="https://hpfx.collab.science.gc.ca/~sixf000/SPS/${SPS_DBASE}"
 SPS_DBASE_MD5SUM="bcaea70b593aa147db0ab87132a14334"
+
 
 printUsage() {
     echo -e "Download a sample database of data files needed to run SPS"
