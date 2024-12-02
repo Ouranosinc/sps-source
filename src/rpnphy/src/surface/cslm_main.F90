@@ -107,12 +107,12 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
            RGAS,RGASVzz,GRAVzz,SBC,VKC,CTzz,VMIN,TCW,TCICE,TCSAND,TCCLAY, &
            TCOM,TCDRYS,RHOSOL,RHOOM,HCPW,HCPICE,HCPSOL,HCPOM,HCPSND,      &
            HCPCLY,SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,TCGLAC,CLHMLT
-      COMMON /CLASS1/ DELTAT,TFREZ
-      COMMON /CLASS2/ RGAS,RGASVzz,GRAVzz,SBC,VKC,CTzz,VMIN
-      COMMON /CLASS3/ TCW,TCICE,TCSAND,TCCLAY,TCOM,TCDRYS,RHOSOL,RHOOM
-      COMMON /CLASS4/ HCPW,HCPICE,HCPSOL,HCPOM,HCPSND,HCPCLY,             &
-                      SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,              &
-                      TCGLAC,CLHMLT,CLHVAP
+!      COMMON /CLASS1/ DELTAT,TFREZ
+!      COMMON /CLASS2/ RGAS,RGASVzz,GRAVzz,SBC,VKC,CTzz,VMIN
+!      COMMON /CLASS3/ TCW,TCICE,TCSAND,TCCLAY,TCOM,TCDRYS,RHOSOL,RHOOM
+!      COMMON /CLASS4/ HCPW,HCPICE,HCPSOL,HCPOM,HCPSND,HCPCLY,             &
+!                      SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,              &
+!                      TCGLAC,CLHMLT,CLHVAP
       DATA      CTzz,       TCW,        TCICE,      TCSAND,    TCCLAY,  TCOM     &
              /  1.15E-3,    0.57,       2.24,       2.5,       2.5,     0.25  /
       DATA      TCDRYS,     RHOSOL,     RHOOM                                    &
