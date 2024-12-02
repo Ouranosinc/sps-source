@@ -116,6 +116,10 @@ module sfc_options
    logical           :: icemelt     = .false.
    namelist /surface_cfgs/ icemelt
 
+   !# Maximum sea ice thickness in meters
+   real              :: icemax      = -1.
+   namelist /surface_cfgs/ icemax
+
    !# Implicit surface fluxes if .true.; explicit fluxes if .false.
    logical           :: impflx      = .false.
    namelist /surface_cfgs/ impflx
@@ -194,12 +198,14 @@ module sfc_options
    !# * 'NIL ' : No Land surface processes
    !# * 'ISBA' : Interaction Soil Biosphere Atmosphere (ISBA) land sfc scheme
    !# * 'SVS ' : Soil, Vegetation, and Snow (SVS) (Multibudget) land sfc scheme
+   !# * 'CLASS': Canadian Land Surface Scheme (CLASS)
    character(len=16) :: schmsol     = 'ISBA'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(3) = (/ &
-        'NIL ', &
-        'ISBA', &
-        'SVS '  &
+   character(len=*), parameter :: SCHMSOL_OPT(4) = (/ &
+        'NIL  ', &
+        'ISBA ', &
+        'SVS  ', &
+        'CLASS'  &
         /)
 
    !# Urban surface processes
@@ -288,6 +294,10 @@ module sfc_options
    character(len=16) :: snow_emiss = '1.'
    real              :: snow_emiss_const = -1.
    namelist /surface_cfgs/ snow_emiss
+
+   !# Maximum snow depth in meters
+   real              :: snowmax      = -1.
+   namelist /surface_cfgs/ snowmax
 
    !#  Soil texture database/calculations for SVS land surface scheme
    !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE)
@@ -464,6 +474,38 @@ module sfc_options
    !# Adjust temperature diagnostic in TEB in the street  if .true.
    logical           :: urb_diagtemp = .false.
    namelist /surface_cfgs/ urb_diagtemp
+
+
+
+   !# CLASS & CTEM parameters
+   !# =======================
+   !# Number of soil layers in CLASS
+   integer           :: class_ig    = 3
+   namelist /surface_cfgs/ class_ig
+
+   !# Soil layer thickness in CLASS
+   real              :: schmsol_lev(200) = 0.0
+   namelist /surface_cfgs/ schmsol_lev
+
+   !# Dynamic vegetation (competition between plant types) within CTEM
+   logical           :: ctem_compete = .false.
+   namelist /surface_cfgs/ ctem_compete
+
+   !# Vegetation processes within CLASS
+   !# 0: computed by CLASS
+   !# 1: computed by CTEM
+   integer           :: ctem_mode   = 0
+   namelist /surface_cfgs/ ctem_mode
+
+   !# Carbon spinup in CTEM
+   !# 1   : no spinup
+   !# 2-10: enabled (higher numbers spin up soil carbon pool faster)
+   integer           :: ctem_spinfast = 1
+   namelist /surface_cfgs/ ctem_spinfast
+
+   !# Start with no vegetation (applies only if ctem_compete = .true.)
+   logical           :: ctem_startbare = .false.
+   namelist /surface_cfgs/ ctem_startbare
 
 contains
 

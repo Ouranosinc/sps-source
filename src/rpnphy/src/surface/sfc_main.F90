@@ -121,6 +121,7 @@ function sfc_main2(trnch, kount, dt, ni, nk) result(F_istat)
    real, pointer, dimension(:)    :: ztke, zhdpth, zlkiceh, zsniceh, zexpw, zdtemp, zdelu, zgred, zrhomix, ztsed, zroficeh
    real, pointer, dimension(:)    :: zsnol, zrhosnol, ztsnowl, zalbsnol, zwsnowl, zlst, zhlaksil, zficl
    real, pointer, dimension(:,:)    :: poids_out, zfvap, zilmo, zrunofftot, &
+        zdraintot, &
         ztmoins, ztplus, &
         zhuplus,zuplus,zvplus,zsnodp, &
         zqdiagtyp, ztdiagtyp, zudiagtyp, zvdiagtyp, zqdiagtypv, ztdiagtypv, &
@@ -193,6 +194,7 @@ function sfc_main2(trnch, kount, dt, ni, nk) result(F_istat)
    MKPTR1D(zwsnowl,wsnowl)
 
    MKPTR2D(poids_out, sfcwgt)
+   MKPTR2D(zdraintot, draintot)
    MKPTR2D(zfvap, fvap)
    MKPTR2D(zilmo, ilmo)
    MKPTR2D(zqdiagtyp, qdiagtyp)
@@ -373,6 +375,13 @@ function sfc_main2(trnch, kount, dt, ni, nk) result(F_istat)
               ptr_soil, nvarsurf, &
               dt, kount, trnch, &
               ni_soil, ni_soil, nk-1)
+
+      elseif (schmsol.eq.'CLASS') then
+
+         call class_main (bus_soil, siz_soil, &
+              ptr_soil, nvarsurf, &
+              dt, kount, trnch, &
+              ni_soil, nk-1, class_ig)
 
       endif
       if (phy_error_L) return
