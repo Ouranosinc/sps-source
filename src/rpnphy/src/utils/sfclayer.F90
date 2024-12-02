@@ -44,6 +44,8 @@ module sfclayer
   public :: sl_sfclayer     !Surface layer parameterization
   public :: sl_stabfunc     !Retrieve stability function values
   public :: sl_adjust       !Adjust diagnostic values
+  public :: set_class_const !Initialization of constants for CLASS (KW)
+                            !Added here because it requires access to some private parameters
 
   ! Generic procedures
   interface sl_put
@@ -1032,5 +1034,96 @@ contains
        z0rt(:) = z0t(:)
     endif
   end subroutine calc_z0ref
+
+!**S/R SET_CLASS_CONST -  INITIALIZATION OF CONSTANTS
+!                         FOR THE CLASS PACKAGE
+  subroutine set_class_const (delt)
+!
+      IMPLICIT NONE
+!
+      real delt
+!
+!Author
+!          B. Bilodeau (June 2004)
+!
+!Revisions
+! 001      B. Dugas    (Aug   2007) - Use CLASSD to initialize constants
+! 002      B. Dugas    (Jan   2009) - Define VAMIN, correct DELT declaration
+! 003      K. Winger   (May   2020) - Rename to class_GEM_comm
+!                                   - Adjust to CLASSIC
+!
+!Object
+!          To initialize constants from conshy.cdk and surfcon.cdk for
+!          the CLASS package through calls to the CLASS communication
+!          subroutine CLASSD
+!
+!Arguments
+!          - Input -
+! delt     timestep in seconds
+  ! Private parameters
+  real,    parameter :: ANGMAX = 0.85
+  real,    parameter :: AS  = 12.
+  real,    parameter :: BS  = 1.
+  real,    parameter :: CI  = 40.
+  real,    parameter :: ASX = 4.7
+
+!
+!*
+!
+!IMPLICITES
+!
+!#include "consphy.cdk"
+#include "thermoconsts.inc"
+!#include "surfcon.cdk"
+#include "clefcon.cdk"
+!
+      print *, 'set_class_const', delt
+!***********************************************************************
+      call class_GEM_comm ('DELT'   , delt   )
+!      call class_GEM_comm ('VAMIN'  , vamin  )
+!
+      call class_GEM_comm ('SPHAIR' , CPD    )
+      call class_GEM_comm ('GRAV'   , GRAV   )
+      call class_GEM_comm ('VKC'    , KARMAN )
+      call class_GEM_comm ('RGAS'   , RGASD  )
+      call class_GEM_comm ('RGASV'  , RGASV  )
+      call class_GEM_comm ('SBC'    , STEFAN )
+      call class_GEM_comm ('TFREZ'  , TCDK   )
+!
+      call class_GEM_comm ('BETA'   , BETA   )
+      call class_GEM_comm ('FACTN'  , FACTN  )
+      call class_GEM_comm ('HMIN'   , HMIN   )
+!
+      call class_GEM_comm ('PI'     , PI     )
+!
+!
+      call classd ('DELT'   , delt   )
+!      call classd ('VAMIN'  , vamin  )
+      call classd ('IFRSOIL', 1.     )
+!
+      call classd ('CPD'    , CPD    )
+      call classd ('SPHAIR' , CPD    )
+      call classd ('DELTA'  , DELTA  )
+      call classd ('GRAV'   , GRAV   )
+      call classd ('CGRAV'  , GRAV   )
+      call classd ('CKARM'  , KARMAN )
+      call classd ('RGAS'   , RGASD  )
+      call classd ('RGASV'  , RGASV  )
+      call classd ('SBC'    , STEFAN )
+      call classd ('TFREZ'  , TCDK   )
+!
+      call classd ('ANGMAX' , ANGMAX )
+      call classd ('AS'     , AS     )
+      call classd ('ASX'    , ASX    )
+      call classd ('BETA'   , BETA   )
+      call classd ('BS'     , BS     )
+      call classd ('CI'     , CI     )
+      call classd ('FACTN'  , FACTN  )
+      call classd ('HMIN'   , HMIN   )
+!
+      call classd ('PI'     , PI     )
+
+      return
+  end subroutine set_class_const
 
 end module sfclayer
