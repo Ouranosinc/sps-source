@@ -97,7 +97,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
       DATA  TKECN,      TKECF,      TKECE,      TKECS,      TKECL      &
       /     1.33,       0.25,       1.15,       0.20,      0.2350/ 
       DATA  HDPTHMIN, TKEMIN,  DELMAX,  DELMIN,  DELZLK,  DELSKIN      &
-      /     0.5,      1.0E-12, 5.0,     0.5,     0.5,     0.050 /   
+      /     0.5,      1.0E-12, 5.0,     0.5,     1.0,     0.050 /   
       DATA  DHMAX,    DUMAX,   EMSW,  QAMIN                             &
       /     2.0,      0.1,     0.97,  1.0E-5   /                                       
 
