@@ -96,7 +96,7 @@ while [[ $# -gt 0 ]] ; do
       (--cfg=*) cfg="${1##*=}";;
       (--nompi) binMPIext="Abs" ; nompi='-nompi';;
       (--inorder) inorder="-inorder -tag" ;;
-      (--gdb) debug="-gdb";;
+      (--gdb) debug="-debug";;
       (--preexec=*) preexec="-preexec '${1##*=}'";;
       (--preexec) ;;
       (-n|--dryrun) dryrun=1 ;;

@@ -8,6 +8,7 @@
       real, pointer, dimension(:) :: zdlat
       real, pointer, dimension(:) :: zdlon
       real, pointer, dimension(:) :: zemtw
+      real, pointer, dimension(:) :: zemisr
       real, pointer, dimension(:) :: zfc
       real, pointer, dimension(:) :: zfcor
       real, pointer, dimension(:) :: zfrv

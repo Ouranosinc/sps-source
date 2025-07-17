@@ -406,24 +406,24 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !
       IF (KOUNT .EQ. 0) THEN
         DO I=1,N
-!!       DO J=1,NLAK(I) 
-!!        TLAK(I,J)=TFREZ+4.0 
-!!        IF (J.LE.10) tlak(i,j)=tlak(i,j)+2.0
-!!       END DO
+        !  DO J=1,NLAK(I) 
+        !   TLAK(I,J)=TFREZ+4.0 
+        !   IF (J.LE.10) tlak(i,j)=tlak(i,j)+2.0
+        !  END DO
 
-!!       LKICEH(I)=0.0     !INITIAL ICE COVER SET TO ZERO
-!!       SNICEH(I)=0.0     !INITIAL SNOW ICE  SET TO ZERO
-!!       T0(I)=TLAK(I,1)   !INITIAL SKIN TEMP SET TO FIRST LAYER TEMP
-!!       TKE(I)=TKEMIN
-!!       DELU(I)=0.0
-!!       SNO   (I) = 0.0
-!!       RHOSNO(I) = 0.0
-!!       TSNOW (I) = 0.0
-!!       ALBSNO(I) = 0.0
-!!       WSNOW (I) = 0.0
-         ROFICEH(I)=0.0    !NOT USED  !INITIAL runoff ICE  SET TO ZERO
-         NLEV=NLAK(I)
-!!       TSED(I)=TLAK(I,NLEV)   !INITIAL SEDIMENT TEMP SET TO LOWEST LAYER TEMP
+        !  LKICEH(I)=0.0     !INITIAL ICE COVER SET TO ZERO
+        !  SNICEH(I)=0.0     !INITIAL SNOW ICE  SET TO ZERO
+        !  T0(I)=TLAK(I,1)   !INITIAL SKIN TEMP SET TO FIRST LAYER TEMP
+        !  TKE(I)=TKEMIN
+        !  DELU(I)=0.0
+        !  SNO   (I) = 0.0
+        !  RHOSNO(I) = 0.0
+        !  TSNOW (I) = 0.0
+        !  ALBSNO(I) = 0.0
+        !  WSNOW (I) = 0.0
+        !  ROFICEH(I)=0.0    !NOT USED  !INITIAL runoff ICE  SET TO ZERO
+        !  NLEV=NLAK(I)
+        !  TSED(I)=TLAK(I,NLEV)   !INITIAL SEDIMENT TEMP SET TO LOWEST LAYER TEMP
 ! ---* 
 ! ---* INITIAL MIXED LAYER DEPTH ESTIMATED BASED ON INITIAL T PROFILE
 ! ---* 
@@ -449,7 +449,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !----------------------------------------------------------------------------------------
    !# In offline mode the t-step 0 is (correctly) not performed
    !if (FLUVERT.eq.'SURFACE'.and.KOUNT.eq.0) return
-
+#
 !
 !========================================================================================
 !    * CANADIAN SMALL LAKE MODEL Ver. 2.1
