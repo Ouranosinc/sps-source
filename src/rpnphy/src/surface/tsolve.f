@@ -1,4 +1,4 @@
-      SUBROUTINE TSOLVE(ISNOW,FI,
+      SUBROUTINE TSOLVEC(ISNOW,FI,
      1                  QSWNET,QLWOUT,QTRANS,QSENS,QEVAP,EVAP,
      2                  TZERO,QZERO,GZERO,QMELT,CDH,CDM,RIB,CFLUX,
      3                  FTEMP,FVAP,ILMO,UE,H,
@@ -697,12 +697,13 @@ C
  200  CONTINUE
 C
       IF(IBAD.NE.0)                                                 THEN
+          PRINT *, 'THE VALUE OF TVIRTA IS', TVIRTA(IBAD)
           WRITE(6,6275) IBAD,JL,TZERO(IBAD),NITER(IBAD),ISNOW
  6275     FORMAT('0BAD ITERATION TEMPERATURE',3X,2I3,F16.2,2I4)
           WRITE(6,6280) QSWNET(IBAD),QLWIN(IBAD),QSENS(IBAD),
      1        QEVAP(IBAD),GZERO(IBAD),CFLUX(IBAD),RIB(IBAD)
  6280     FORMAT(2X,7F12.4)
-          CALL XIT('TSOLVE',-1)
+          CALL XIT('TSOLVEC',-1)
       ENDIF 
       !
       !Finally, a check is performed to ensure that TZERO is not less 
