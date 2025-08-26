@@ -723,7 +723,7 @@ C
      1                FGS,ZSNOW,TSNOW,TCSNOW,
      2                ILG,IL1,IL2,JL      )
           ISNOW=1
-          CALL TSOLVE(ISNOW,FGS,
+          CALL TSOLVEC(ISNOW,FGS,
      1                QSWX,QLWX,QTRANS,QSENSX,QEVAPX,EVAPGS,
      2                TSURX,QSURX,GSNOWG,QMELTG,CDHX,CDMX,RIBX,CFLUX,
      3                FTEMPX,FVAPX,ILMOX,UEX,HBLX,
@@ -1036,7 +1036,7 @@ C
      +                FG,ZPOND,TBAR1P,DELZ,TCSNOW,ZSNOW,
      3                ISAND,ILG,IL1,IL2,IG                      )
           ISNOW=0
-          CALL TSOLVE(ISNOW,FG,
+          CALL TSOLVEC(ISNOW,FG,
      1                QSWX,QLWX,QTRANS,QSENSX,QEVAPX,EVAPG,
      2                TSURX,QSURX,GZEROG,QFREZG,CDHX,CDMX,RIBX,CFLUX,
      3                FTEMPX,FVAPX,ILMOX,UEX,HBLX,
