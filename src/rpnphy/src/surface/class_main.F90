@@ -1176,20 +1176,21 @@ subroutine class_main (BUS, BUSSIZ, &
 
 if (kount==0 .and. trnch==1) then
 !if (kount==0 .and. trnch>=16) then
-
 print*,'class_main trnch =',trnch
 print*,'class_main n =',n
 print*,'class_main Geophysical fields'
 print*,'class_main ZSAND(:,1):',ZSAND(:,1)
-do j=1,IG
-  print*,'class_main ZSAND:',j,minval(ZSAND(:,j)),maxval(ZSAND(:,j)),sum(ZSAND(:,j))/(N)
-  print*,'class_main ZCLAY:',j,minval(ZCLAY(:,j)),maxval(ZCLAY(:,j)),sum(ZCLAY(:,j))/(N)
-  print*,'class_main ZORGM:',j,minval(ZORGM(:,j)),maxval(ZORGM(:,j)),sum(ZORGM(:,j))/(N)
-enddo
-print*,'class_main ZXDRAIN        :',minval(ZXDRAIN),maxval(ZXDRAIN),sum(ZXDRAIN)/(N)
+!do j=1,IG
+!  print*,'class_main ZSAND:',j,minval(ZSAND(:,j)),maxval(ZSAND(:,j)),sum(ZSAND(:,j))/(N)
+!  print*,'class_main ZCLAY:',j,minval(ZCLAY(:,j)),maxval(ZCLAY(:,j)),sum(ZCLAY(:,j))/(N)
+!  print*,'class_main ZORGM:',j,minval(ZORGM(:,j)),maxval(ZORGM(:,j)),sum(ZORGM(:,j))/(N)
+!enddo
+!print*,'class_main ZXDRAIN        :',minval(ZXDRAIN),maxval(ZXDRAIN),sum(ZXDRAIN)/(N)
 
 print*,'class_main'
 print*,'class_main Physics input'
+!print*,'class_main FGS            :',minval(FGS),maxval(FGS),sum(FGS)/(N)
+print*,'class_main TS             :',minval(TS),maxval(TS),sum(TS)/(N*IG)
 print*,'class_main QA             :',minval(QA),maxval(QA),sum(QA)/(N)
 print*,'class_main PS             :',minval(PS),maxval(PS),sum(PS)/(N)
 print*,'class_main TA             :',minval(TA),maxval(TA),sum(TA)/(N)
@@ -1228,7 +1229,7 @@ enddo
 !print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
 !print*,'class_main FCS            :',minval(FCS),maxval(FCS),sum(FCS)/(N)
 !print*,'class_main FG             :',minval(FG),maxval(FG),sum(FG)/(N)
-!print*,'class_main FGS            :',minval(FGS),maxval(FGS),sum(FGS)/(N)
+
 !print*,'class_main ZFRV           :',minval(ZFRV),maxval(ZFRV),sum(ZFRV)/(N)
 !print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)
 !print*,'class_main HBL            :',minval(HBL),maxval(HBL),sum(HBL)/(N)
@@ -1237,7 +1238,7 @@ enddo
 !print*,'class_main SQ             :',minval(SQ),maxval(SQ),sum(SQ)/(N)
 !print*,'class_main QS             :',minval(QS),maxval(QS),sum(QS)/(N)
 !print*,'class_main ST             :',minval(ST),maxval(ST),sum(ST)/(N)
-!print*,'class_main TS             :',minval(TS),maxval(TS),sum(TS)/(N*IG)
+
 !print*,'class_main SU             :',minval(SU),maxval(SU),sum(SU)/(N)
 !print*,'class_main SV             :',minval(SV),maxval(SV),sum(SV)/(N)
 !print*,'class_main THLIQ          :',minval(THLIQ),maxval(THLIQ),sum(THLIQ)/(N*IG)

@@ -22,7 +22,7 @@ if (first) then
   print *,'iniclass HELLOOOOOOOOOOOOOOOOOOOOOOOOOOO AAA'
 endif
 
-  runParamsFile = "../CLASS_input_table"
+  runParamsFile = "/exec/cgauthier/sps-source/workdir/RUNMOD/input/cfg_0000/CLASS_input_table"
 
   ! Pass some constants from GEM to CLASS
   call set_class_const(delt)

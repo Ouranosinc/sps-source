@@ -1016,7 +1016,7 @@ module sfc_options
    !# CLASS & CTEM parameters
    !# =======================
    !# Number of soil layers in CLASS
-   integer           :: class_ig    = 3
+   integer           :: class_ig    = 16
    namelist /surface_cfgs/ class_ig
 
    !# Soil layer thickness in CLASS
