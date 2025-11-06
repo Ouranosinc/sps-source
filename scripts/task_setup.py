@@ -78,7 +78,7 @@ SECTION CLASS
 
   CLASS VARIABLES
     delimiter_exec   - Delimiter for embedded commands (default '`')
-    delimiter_target - Delimiter for multiple targets on the RHS (default \s or \n)
+    delimiter_target - Delimiter for multiple targets on the RHS (default \\s or \\n)
     verbosity        - Integer to control verbosity level.
     cleanup          - Boolean to clean task directory before setup.
     force            - Force action despite warnings.
@@ -147,10 +147,10 @@ def path2host(machine,path):
 
 def resolveKeywords(entry,delim_exec='',set=None,verbose=False,internals={}):
     """Resolve special keywords in the entry (no procesing for keywords in embedded commands)"""
-    delim_start='\$\{'
+    delim_start=r'\$\{'
     delim_end='}'
     delim = re.compile(delim_start+'(.*?)'+delim_end)
-    dollar = re.compile('\$')
+    dollar = re.compile(r'\$')
     elements = delim_exec and re.split(delim_exec+'(.*?)'+delim_exec,entry) or [entry]
     found_internal = False
     for i in range(0,len(elements)):
@@ -349,7 +349,7 @@ class Section(list):
 
     # Class variables
     delimiter_exec = '`'
-    delimiter_target = '(?<!<no)\n|\s+(?!value>)'
+    delimiter_target = r'(?<!<no)\n|\s+(?!value>)'
     verbosity = 0
     cleanup = False
     force = False
@@ -444,7 +444,7 @@ class Section(list):
 
     def add(self,line,search_path):
         """Add data to the section"""
-        data = re.split('\s+',re.sub('^(#)+',' ',line))
+        data = re.split(r'\s+',re.sub('^(#)+',' ',line))
         entry = {}
         try:
             rawLink = data[1]
@@ -461,7 +461,7 @@ class Section(list):
             except:
                 pass
         lastSlash = re.compile('/$',re.M)
-        noval = re.compile('^\s*[\'\"]*<no\svalue>',re.M)
+        noval = re.compile(r'^\s*[\'\"]*<no\svalue>',re.M)
         comment = re.compile('^#',re.M)
         for step in self.loop['steps']:
             loopInternals={self.loop['var']:step}
@@ -830,7 +830,7 @@ class Config(dict):
         """Parse section header into individual attributes"""
         head = resolveKeywords(head,set=self.set,verbose=self.verbosity)
         try:
-            att_string = re.split('\s+',head['string'],maxsplit=1)[1]
+            att_string = re.split(r'\s+',head['string'],maxsplit=1)[1]
         except IndexError:
             return({})
         return(dict(token.split('=') for token in shlex.split(att_string)))
@@ -849,13 +849,13 @@ class Config(dict):
     def getSections(self):
         """Break input data into individual sections"""
         currentSection = None
-        prefix='^\s*#\s*'
+        prefix=r'^\s*#\s*'
         validLine = re.compile(prefix+'[^#](.+)',re.M)
-        sectionHead = re.compile(prefix+'<([^/]\S+)(.*)>',re.M)
+        sectionHead = re.compile(prefix+r'<([^/]\S+)(.*)>',re.M)
         sectionFoot = re.compile(prefix+'</(.*)>',re.M)
         self["sections"] = {}
         for raw_line in self.configData:
-            line = re.sub('^\s+','',raw_line,re.M)
+            line = re.sub(r'^\s+','',raw_line,flags=re.M)
             head = False
             valid = validLine.search(line)
             if (valid):

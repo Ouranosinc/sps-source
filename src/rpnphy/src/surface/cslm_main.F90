@@ -1213,7 +1213,8 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !
       DO 605 I=IL1,IL2
        IF  (LKICEH(I) .LE. 0.0 .AND. USTAR(I) .GT. 0.0 ) THEN
-         WEDB=GRED(I)*HDPTH(I)*HDPTH(I)/(LLAK(I)*USTAR(I)*USTAR(I))
+         !WEDB=GRED(I)*HDPTH(I)*HDPTH(I)/(LLAK(I)*USTAR(I)*USTAR(I))
+         WEDB=-999 ! MLab mod
        ELSE
          WEDB=-999    !because USTAR=0
        ENDIF
