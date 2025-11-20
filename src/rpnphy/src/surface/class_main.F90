@@ -1174,12 +1174,12 @@ subroutine class_main (BUS, BUSSIZ, &
 ! End CTEM fields
 
 
-if (kount==0 .and. trnch==1) then
+!if (kount==0 .and. trnch==1) then
 !if (kount==0 .and. trnch>=16) then
-print*,'class_main trnch =',trnch
-print*,'class_main n =',n
-print*,'class_main Geophysical fields'
-print*,'class_main ZSAND(:,1):',ZSAND(:,1)
+!print*,'class_main trnch =',trnch
+!print*,'class_main n =',n
+!print*,'class_main Geophysical fields'
+!print*,'class_main ZSAND(:,1):',ZSAND(:,1)
 !do j=1,IG
 !  print*,'class_main ZSAND:',j,minval(ZSAND(:,j)),maxval(ZSAND(:,j)),sum(ZSAND(:,j))/(N)
 !  print*,'class_main ZCLAY:',j,minval(ZCLAY(:,j)),maxval(ZCLAY(:,j)),sum(ZCLAY(:,j))/(N)
@@ -1187,29 +1187,29 @@ print*,'class_main ZSAND(:,1):',ZSAND(:,1)
 !enddo
 !print*,'class_main ZXDRAIN        :',minval(ZXDRAIN),maxval(ZXDRAIN),sum(ZXDRAIN)/(N)
 
-print*,'class_main'
-print*,'class_main Physics input'
+!print*,'class_main'
+!print*,'class_main Physics input'
 !print*,'class_main FGS            :',minval(FGS),maxval(FGS),sum(FGS)/(N)
-print*,'class_main TS             :',minval(TS),maxval(TS),sum(TS)/(N*IG)
-print*,'class_main QA             :',minval(QA),maxval(QA),sum(QA)/(N)
-print*,'class_main PS             :',minval(PS),maxval(PS),sum(PS)/(N)
-print*,'class_main TA             :',minval(TA),maxval(TA),sum(TA)/(N)
-print*,'class_main UA             :',minval(UA),maxval(UA),sum(UA)/(N)
-print*,'class_main VA             :',minval(VA),maxval(VA),sum(VA)/(N)
-print*,'class_main ZCANG          :',minval(ZCANG),maxval(ZCANG),sum(ZCANG)/(N)
-print*,'class_main ZDLAT          :',minval(ZDLAT),maxval(ZDLAT),sum(ZDLAT)/(N)
-print*,'class_main ZDLON          :',minval(ZDLON),maxval(ZDLON),sum(ZDLON)/(N)
-print*,'class_main ZZTSL          :',minval(ZZTSL),maxval(ZZTSL),sum(ZZTSL)/(N)
-print*,'class_main ZZUSL          :',minval(ZZUSL),maxval(ZZUSL),sum(ZZUSL)/(N)
-print*,'class_main FLUSOL         :',minval(FLUSOL),maxval(FLUSOL),sum(FLUSOL)/(N)
-print*,'class_main QLWIN          :',minval(QLWIN),maxval(QLWIN),sum(QLWIN)/(N)
-print*,'class_main ZRAINRATE      :',minval(ZRAINRATE),maxval(ZRAINRATE),sum(ZRAINRATE)/(N)
-print*,'class_main ZSNOWRATE      :',minval(ZSNOWRATE),maxval(ZSNOWRATE),sum(ZSNOWRATE)/(N)
-do j=1,NBS
-  print*,'class_main ZSW4TOTL:',j,minval(ZSW4TOTL(:,j)),maxval(ZSW4TOTL(:,j)),sum(ZSW4TOTL(:,j))/(N)
-  print*,'class_main ZSW4DRCT:',j,minval(ZSW4DRCT(:,j)),maxval(ZSW4DRCT(:,j)),sum(ZSW4DRCT(:,j))/(N)
-  print*,'class_main ZSW4DIFF:',j,minval(ZSW4DIFF(:,j)),maxval(ZSW4DIFF(:,j)),sum(ZSW4DIFF(:,j))/(N)
-enddo
+!print*,'class_main TS             :',minval(TS),maxval(TS),sum(TS)/(N*IG)
+!print*,'class_main QA             :',minval(QA),maxval(QA),sum(QA)/(N)
+!print*,'class_main PS             :',minval(PS),maxval(PS),sum(PS)/(N)
+!print*,'class_main TA             :',minval(TA),maxval(TA),sum(TA)/(N)
+!print*,'class_main UA             :',minval(UA),maxval(UA),sum(UA)/(N)
+!print*,'class_main VA             :',minval(VA),maxval(VA),sum(VA)/(N)
+!print*,'class_main ZCANG          :',minval(ZCANG),maxval(ZCANG),sum(ZCANG)/(N)
+!print*,'class_main ZDLAT          :',minval(ZDLAT),maxval(ZDLAT),sum(ZDLAT)/(N)
+!print*,'class_main ZDLON          :',minval(ZDLON),maxval(ZDLON),sum(ZDLON)/(N)
+!print*,'class_main ZZTSL          :',minval(ZZTSL),maxval(ZZTSL),sum(ZZTSL)/(N)
+!print*,'class_main ZZUSL          :',minval(ZZUSL),maxval(ZZUSL),sum(ZZUSL)/(N)
+!print*,'class_main FLUSOL         :',minval(FLUSOL),maxval(FLUSOL),sum(FLUSOL)/(N)
+!print*,'class_main QLWIN          :',minval(QLWIN),maxval(QLWIN),sum(QLWIN)/(N)
+!print*,'class_main ZRAINRATE      :',minval(ZRAINRATE),maxval(ZRAINRATE),sum(ZRAINRATE)/(N)
+!print*,'class_main ZSNOWRATE      :',minval(ZSNOWRATE),maxval(ZSNOWRATE),sum(ZSNOWRATE)/(N)
+!do j=1,NBS
+!  print*,'class_main ZSW4TOTL:',j,minval(ZSW4TOTL(:,j)),maxval(ZSW4TOTL(:,j)),sum(ZSW4TOTL(:,j))/(N)
+!  print*,'class_main ZSW4DRCT:',j,minval(ZSW4DRCT(:,j)),maxval(ZSW4DRCT(:,j)),sum(ZSW4DRCT(:,j))/(N)
+!  print*,'class_main ZSW4DIFF:',j,minval(ZSW4DIFF(:,j)),maxval(ZSW4DIFF(:,j)),sum(ZSW4DIFF(:,j))/(N)
+!enddo
 !print*,'class_main ZGRKFAC        :',minval(ZGRKFAC),maxval(ZGRKFAC),sum(ZGRKFAC)/(N)
 !print*,'class_main ZWFSURF        :',minval(ZWFSURF),maxval(ZWFSURF),sum(ZWFSURF)/(N)
 !print*,'class_main ZWFCINT        :',minval(ZWFCINT),maxval(ZWFCINT),sum(ZWFCINT)/(N)
@@ -1346,7 +1346,7 @@ enddo
 !print*,'class_main ZCDM           :',minval(ZCDM),maxval(ZCDM),sum(ZCDM)/(N)
 
 !stop
-endif ! prints
+!endif ! prints
 
 
 !*************************************************************
@@ -1698,6 +1698,12 @@ endif ! prints
 !                                 iday, pdd)
 !
 !print*,'class_main before CLASST'
+!if (kount==16 .and. trnch==1) then
+!  print *,'class_main: kount,trnch,TS(16,1) Kelvin:',kount,trnch,TS(16,1)
+!  print *,'class_main: kount,trnch,ZSNOW(16) m:',kount,trnch,ZSNOW(16)
+!  print *,'class_main: kount,trnch, ZRHOSNO(16) kgm-1:',kount,trnch,ZRHOSNO(16)
+!endif
+!print *,'class_main: kount,trnch,TBAR(11,20):',kount,trnch,TS(11,20)
                CALL   CLASST ( &
                      TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
              THICEC, THICEG, HCPC,   HCPG,   TCTOPC, TCBOTC, TCTOPG, TCBOTG, &

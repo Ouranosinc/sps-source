@@ -20,7 +20,6 @@ subroutine iniclass
 
 if (first) then
   first = .false.
-  print *,'In iniclass.F90'
 endif
 
 ! Get path to CLASS_input_table following SPS file structure
@@ -34,8 +33,6 @@ endif
     if (pos > 0) then
       base_path = cwd_path(1:pos + 7)
       table_p = trim(base_path) // 'input/cfg_0000/CLASS_input_table'
-      print *, "Base path: ", trim(base_path)
-      print *, "New path (table_p): ", trim(table_p)
     end if
   else
     print *, "Error getting current working directory. Error code:", ierror
@@ -48,6 +45,6 @@ endif
   ! Set pure CLASS/CTEM constants
   call prepareGlobalParams
 
-print *,'GROWYR:',GROWYR(1,1,:)
+! print *,'GROWYR:',GROWYR(1,1,:)
 
 end subroutine iniclass

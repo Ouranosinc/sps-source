@@ -1077,7 +1077,7 @@ contains
 !#include "surfcon.cdk"
 #include "clefcon.cdk"
 !
-      print *, 'set_class_const', delt
+!      print *, 'set_class_const', delt
 !***********************************************************************
       call class_GEM_comm ('DELT'   , delt   )
 !      call class_GEM_comm ('VAMIN'  , vamin  )

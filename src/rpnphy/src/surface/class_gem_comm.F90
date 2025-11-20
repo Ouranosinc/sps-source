@@ -39,7 +39,7 @@ subroutine class_gem_comm (nom,valeur)
 !     conversion de minuscules a majuscules
       call low2up(nom, nomc)
 
-print *,'Transferred to CLASS: ',nomc, ' = ', valeur
+!print *,'Transferred to CLASS: ',nomc, ' = ', valeur
 
 !
       if      (nomc.eq.'ANGMAX')                  THEN
