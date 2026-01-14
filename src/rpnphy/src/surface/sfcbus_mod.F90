@@ -723,10 +723,15 @@ module sfcbus_mod
       SFCVAR(psiwlt, 'psiwlt')
       SFCVAR(qa50, 'qa50')
       SFCVAR(qfc, 'qfc')
+      SFCVAR(qfcaf, 'qfcaf')
       SFCVAR(qfcf, 'qfcf')
+      SFCVAR(qfcfaf, 'qfcfaf')
       SFCVAR(qfcl, 'qfcl')
+      SFCVAR(qfclaf, 'qfclaf')
       SFCVAR(qfg, 'qfg')
+      SFCVAR(qfgaf, 'qfgaf')
       SFCVAR(qfn, 'qfn')
+      SFCVAR(qfnaf, 'qfnaf')
       SFCVAR(rofc, 'rofc')
       SFCVAR(rofn, 'rofn')
       SFCVAR(rovg, 'rovg')
@@ -976,6 +981,16 @@ module sfcbus_mod
    integer :: overflaf=0
    integer :: potevaptr=0
    integer :: potevaptraf=0
+   integer :: qfc=0
+   integer :: qfcaf=0
+   integer :: qfcf=0
+   integer :: qfcfaf=0
+   integer :: qfcl=0
+   integer :: qfclaf=0
+   integer :: qfg=0
+   integer :: qfgaf=0
+   integer :: qfn=0
+   integer :: qfnaf=0
    integer :: rofinlak=0  
    integer :: rofinlakaf=0  
    integer :: rootdp=0
@@ -1090,6 +1105,26 @@ contains
             potevaptr = ivar1(1)
          case('POTEVAPTRAF')
             potevaptraf = ivar1(1)
+         case('QFC')
+            qfc = ivar1(1)
+         case('QFCAF')
+            qfcaf = ivar1(1)
+         case('QFCF')
+            qfcf = ivar1(1)
+         case('QFCFAF')
+            qfcfaf = ivar1(1)
+         case('QFCL')
+            qfcl = ivar1(1)
+         case('QFCLAF')
+            qfclaf = ivar1(1)
+         case('QFG')
+            qfg = ivar1(1)
+         case('QFGAF')
+            qfgaf = ivar1(1)
+         case('QFN')
+            qfn = ivar1(1)
+         case('QFNAF')
+            qfnaf = ivar1(1)
          case('ROFINLAK')
             rofinlak = ivar1(1)     
          case('ROFINLAKAF')

@@ -105,6 +105,54 @@ subroutine sfc_businit(moyhr,ni,nk)
         z0ha, z0hbg, z0hvg, z0mland, z0mlanden, z0mvg, z0mvh, z0mvhen, z0mvl, &
         conddry, condsld, quartz, rhosoil, soilhcapz, soilcondz, &
         tperm, tpsoil,wunfrz,watpond,maxpond
+   !--------   FOR CLASS -----------------
+   character(len=2) :: ncg, ncv, ncvp, nicc, niccp
+   character(len=3) :: ncvxcg, niccxcg
+   integer :: alvs, alir, algwv, algwn, algdv, algdn, &
+        ail, pai, alirc, alvsc, bbi, cdh, cdm, &
+        cmai, delzw, evapo, fcanmx, fcovc, fcovcs, fcovg, fcovgs, firupaf, &
+        flgg, flgs, flgv, fsgg, fsgs, fsgv, fsnow, fsolupaf, grkfac, &
+        hcps, hevc, hevg, hevs, hfsc, hfsg, hfss, hmfc, hmfg, hmfn, &
+        htc, htcc, htcs, huaircan, iveg, laimax, laimin, &
+        mosfract, orgm, pcfc, pcpn, pclc, pcpg, psiga, &
+        psigb, psiwlt, qa50, rib, &
+        rofc, rofn, rovg, sdepth, &
+        subflw, taircan, tbase, &
+        tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tovrfl, &
+        tpond, trunoff, tsno, tsubfl, tsurfsa, tveg, &
+        veggro, vegma, vpda, vpdb, &
+        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, z0oro, z0vegc, zbotw, zoln, zpond, &
+        zponden
+   integer :: anis, are, excw, lbedr, leggw, slpgw, totw, wtnew
+   ! Parameters for CLASS 3.6
+   integer :: algwet, algdry
+   ! For CLASSIC
+   integer :: grdhflx, snowsize
+   !--------   FOR CTEM -----------------
+   integer :: ailc, ailcb, ailcg, alirctm, allwacc, alswacc, alvsctm, &
+        ancgvgac, ancsvgac, anndefct, annpcp, annsrpls, anpcpcur, anpecur, &
+        anpotevp, aridity, bleafmas, bmasveg, burnvegf, cfluxcg, &
+        cfluxcs, cmasvegc, co2conc, co2i1cg, co2i1cs, co2i2cg, co2i2cs, &
+        colddayr, defctcur, defctmon, defmnr, dftcuryr, dryslen, dvdfcan, &
+        extnprob, fcancmx, flhrloss, flinacc, flutacc, fsinacc, &
+        fsnowacc, gavglai, gavgltms, gavgscms, gdd5, gdd5cur, geremort, &
+        gleafmas, grwtheff, intrmort, lambda, lfstatur, &
+        litrmass, lyrotmas, lystmmas, mlightng, nfcancmx, nppveg, &
+        paic, pandayr, pfcancmx, pftexistr, pgleafmass, prbfrhuc, &
+        preacc, pstemmass, rmatc, rmatctem, rmlcgvga, rmlcsvga, rootdpth, &
+        rootmass, rothrlos, slai, slaic, soilcmas, &
+        srpcuryr, srplscur, srplsmon, stemmass, stmhrlos, surmnr, &
+        taaccgat, tbaraccgat, tbarcacc, tbarcsacc, tbargacc, tbargsacc, &
+        tcanoaccgat, tcansacc, tcoldm, tcurm, thicecacc, thliqcacc, &
+        thliqgacc, tmonthb, todfrac, twarmm, tymaxlai, uvaccgat, veghght, &
+        vgbiomas, vvaccgat, wdmindex, zolnc
+   integer :: afrleaf, afrroot, afrstem, autores, autresveg, burnarea, &
+        colrate, dstcemls, dstcemls3, gpp, gppveg, grclarea, hetresveg, &
+        hetrores, humiftrs, leaflitr, litrfall, litres, litresveg, lucemcom, &
+        lucltrin, lucsocin, ltstatus, mortrate, nbp, nbpveg, nep, nepveg, npp, &
+        probfire, rg, rgveg, rm, rml, rmlvegacc, rmr, rmrveg, rms, rmsveg, &
+        roottemp, socres, socresveg, soilresp, tltrleaf, tltrroot, tltrstem, &
+        vgbiomas_veg, wtstatus
 
    !---------------------------------------------------------------------
    
@@ -849,10 +897,15 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR3D1(psiwlt,       'VN=psiwlt       ;ON=D6  ;VD=soil water suction at wilting point            ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR3D1(qa50,         'VN=qa50         ;ON=D7  ;VD=parameter in stomatal conductance              ;VS=A*'//ncv//'    ;VB=p0')
       PHYVAR3D1(qfc,          'VN=qfc          ;ON=M5  ;VD=Water extract. from soil layers due to transp. ;VS=A*'//ncg//'    ;VB=v0')
+      PHYVAR3D1(qfcaf,        'VN=qfcaf        ;ON=CTRA;VD=transpiration from soil layers, accum.         ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR2D1(qfcf,         'VN=qfcf         ;ON=S1  ;VD=subl. rate of canopy frozen water                                 ;VB=v0')
+      PHYVAR2D1(qfcfaf,       'VN=qfcfaf       ;ON=CSUA;VD=subl. rate of canopy frozen water, accum.                         ;VB=p0')
       PHYVAR2D1(qfcl,         'VN=qfcl         ;ON=E2  ;VD=evapo. rate of canopy liq. water                                  ;VB=v0')
+      PHYVAR2D1(qfclaf,       'VN=qfclaf       ;ON=CEVA;VD=evapo. rate of canopy liq. water, accum.                          ;VB=p0')
       PHYVAR2D1(qfg,          'VN=qfg          ;ON=E3  ;VD=evapo. rate from soil surface                                     ;VB=v0')
+      PHYVAR2D1(qfgaf,        'VN=qfgaf        ;ON=GEVA;VD=evapo. rate from soil surface, accum.                             ;VB=p0')
       PHYVAR2D1(qfn,          'VN=qfn          ;ON=S2  ;VD=subl. rate from snow cover                                        ;VB=v0')
+      PHYVAR2D1(qfnaf,        'VN=qfnaf        ;ON=GSUA;VD=subl. rate from snow cover, accum.                                ;VB=p0')
       PHYVAR2D1(rib,          'VN=rib          ;ON=RIB ;VD=Bulk Richardson number [-10,5]                                    ;VB=v0')
       PHYVAR2D1(rofc,         'VN=rofc         ;ON=DC  ;VD=dripping from canopy                                              ;VB=v0')
       PHYVAR2D1(rofn,         'VN=rofn         ;ON=MS  ;VD=melting snow from snowpack                                        ;VB=v0')
