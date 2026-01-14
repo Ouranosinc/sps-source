@@ -115,7 +115,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         hcps, hevc, hevg, hevs, hfsc, hfsg, hfss, hmfc, hmfg, hmfn, &
         htc, htcc, htcs, huaircan, iveg, laimax, laimin, &
         mosfract, orgm, pcfc, pcpn, pclc, pcpg, psiga, &
-        psigb, psiwlt, qa50, qfc, qfcf, qfcl, qfg, qfn, rib, &
+        psigb, psiwlt, qa50, rib, &
         rofc, rofn, rovg, sdepth, &
         subflw, taircan, tbase, &
         tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tovrfl, &
@@ -592,10 +592,15 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR3D1(psiwlt,       'VN=psiwlt       ;ON=D6  ;VD=soil water suction at wilting point            ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR3D1(qa50,         'VN=qa50         ;ON=D7  ;VD=parameter in stomatal conductance              ;VS=A*'//ncv//'    ;VB=p0')
       PHYVAR3D1(qfc,          'VN=qfc          ;ON=M5  ;VD=Water extract. from soil layers due to transp. ;VS=A*'//ncg//'    ;VB=v0')
+      PHYVAR3D1(qfcaf,        'VN=qfcaf        ;ON=CTRA;VD=transpiration from soil layers, accum.         ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR2D1(qfcf,         'VN=qfcf         ;ON=S1  ;VD=subl. rate of canopy frozen water                                 ;VB=v0')
+      PHYVAR2D1(qfcfaf,       'VN=qfcfaf       ;ON=CSUA;VD=subl. rate of canopy frozen water, accum.                         ;VB=p0')
       PHYVAR2D1(qfcl,         'VN=qfcl         ;ON=E2  ;VD=evapo. rate of canopy liq. water                                  ;VB=v0')
+      PHYVAR2D1(qfclaf,       'VN=qfclaf       ;ON=CEVA;VD=evapo. rate of canopy liq. water, accum.                          ;VB=p0')
       PHYVAR2D1(qfg,          'VN=qfg          ;ON=E3  ;VD=evapo. rate from soil surface                                     ;VB=v0')
+      PHYVAR2D1(qfgaf,        'VN=qfgaf        ;ON=GEVA;VD=evapo. rate from soil surface, accum.                             ;VB=p0')
       PHYVAR2D1(qfn,          'VN=qfn          ;ON=S2  ;VD=subl. rate from snow cover                                        ;VB=v0')
+      PHYVAR2D1(qfnaf,        'VN=qfnaf        ;ON=GSUA;VD=subl. rate from snow cover, accum.                                ;VB=p0')
       PHYVAR2D1(rib,          'VN=rib          ;ON=RIB ;VD=Bulk Richardson number [-10,5]                                    ;VB=v0')
       PHYVAR2D1(rofc,         'VN=rofc         ;ON=DC  ;VD=dripping from canopy                                              ;VB=v0')
       PHYVAR2D1(rofn,         'VN=rofn         ;ON=MS  ;VD=melting snow from snowpack                                        ;VB=v0')

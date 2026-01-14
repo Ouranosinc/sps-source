@@ -31,6 +31,12 @@ contains
       implicit none
 !!!#include <arch_specific.hf>
 #include <rmnlib_basics.hf>
+
+      !@Revisions:
+      ! 001 K.Winger ESCER/UQAM Mar 2022 - add draintot and trunofftot
+      !                                  - move accumulation of runofftot here from sfc_main
+      !                                  - add sections for CLASS and CLASS to if-sections
+      !
       !@Object Calculates averages and accumulators of tendencies and diagnostics
       !@Arguments
       !          - Input/Output -
@@ -52,11 +58,17 @@ contains
       real, pointer, dimension(:), contiguous :: zaccevap, zdrain, zdrainaf, zfvapliqaf,&
            zisoil, zlatflaf, zleg, zlegaf, &
            zler, zleraf, zles, zlesaf, zletr, zletraf, zlev, zlevaf, zoverfl, &
-           zoverflaf, zrofinlak, zrofinlakaf, zrootdp, zwflux, zwfluxaf, zwsoil, zinsmavg
+           zoverflaf, zpotevaptr, zpotevaptraf, zrofinlak, zrofinlakaf, zrootdp, zwflux, zwfluxaf, zwsoil, zinsmavg
 
       real, pointer, dimension(:,:), contiguous :: zlatflw, zrunofftot, &
            zrunofftotaf, zwatflow
-      
+      real, pointer, dimension(:,:), contiguous :: zdraintot  , zdraintotaf
+      real, pointer, dimension(:,:), contiguous :: ztrunofftot, ztrunofftotaf
+      real, pointer, dimension(:,:), contiguous :: zevapotot  , zevapototaf
+
+      real, pointer, dimension(:,:), contiguous :: zqfc   , zqfcaf
+      real, pointer, dimension(:), contiguous   :: zqfcf  , zqfcl  , zqfg  , zqfn
+      real, pointer, dimension(:), contiguous   :: zqfcfaf, zqfclaf, zqfgaf, zqfnaf
       logical :: lacchr
       integer :: i, k, moyhr_steps
       real :: moyhri, tmp_r
@@ -66,6 +78,8 @@ contains
 
 #define MKPTR1D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni) => busptr(vd%NAME2%i)%ptr(:,trnch)
 #define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
+
+
 
       MKPTR1D(zaccevap, accevap)
       MKPTR1D(zdrain, drain)
@@ -85,6 +99,8 @@ contains
       MKPTR1D(zlevaf, levaf)
       MKPTR1D(zoverfl, overfl)
       MKPTR1D(zoverflaf, overflaf)
+      MKPTR1D(zpotevaptr, potevaptr)
+      MKPTR1D(zpotevaptraf, potevaptraf)
       MKPTR1D(zrofinlak, rofinlak)
       MKPTR1D(zrofinlakaf, rofinlakaf)
       MKPTR1D(zrootdp, rootdp)
@@ -95,7 +111,14 @@ contains
       MKPTR2D(zlatflw,latflw)
       MKPTR2D(zrunofftot,runofftot)
       MKPTR2D(zrunofftotaf,runofftotaf)
-      MKPTR2D(zwatflow,watflow)
+      MKPTR2D(zwatflow     ,watflow)
+
+      MKPTR2D(zdraintot    ,draintot)
+      MKPTR2D(zdraintotaf  ,draintotaf)
+      MKPTR2D(zevapotot    ,evapotot)
+      MKPTR2D(zevapototaf  ,evapototaf)
+      MKPTR2D(ztrunofftot  ,trunofftot)
+      MKPTR2D(ztrunofftotaf,trunofftotaf)
 
       
       lacchr = .false.
@@ -105,8 +128,8 @@ contains
          lacchr = (step_driver-1 == 0)
       endif
       
-      ! Common ISBA/SVS accumulators
-      IF_ISBA_SVS: if (schmsol == 'ISBA' .or. schmsol == 'SVS') then
+      ! Common ISBA/SVS/CLASS accumulators
+      IF_ISBA_SVS_CLASS: if (schmsol == 'ISBA' .or. schmsol == 'SVS' .or. schmsol == 'CLASS') then
 
          IF_RESET: if (kount == 0 .or. lacchr) then
 
@@ -121,17 +144,29 @@ contains
             !Accumulation of total surface runoff, per tile and total 
             zrunofftotaf(:,:) = 0.
 
+            !Accumulation of total base    runoff, per tile and total
+            zdraintotaf(:,:)   = 0.
+
+            !Accumulation of total         runoff, per tile and total
+            ztrunofftotaf(:,:) = 0.
+
          endif IF_RESET
 
          IF_KOUNT_NE_0: if (kount /= 0) then
             !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
             do k=1,nsurf+1
                do i=1,ni
-                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)
+                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)  * dt ! in CRCM CODE (CG)
+                  zdraintotaf(i,k)   = zdraintotaf(i,k)  + zdraintot(i,k)  * dt
+                  ztrunofftot(i,k)   = zrunofftot(i,k)   + zdraintot(i,k)
+                  ztrunofftotaf(i,k) = zrunofftotaf(i,k) + zdraintotaf(i,k)
+
+                  ! Total evaporation (kg/m2)
+                  zevapototaf(i,k)   = zevapototaf(i,k)  + zevapotot(i,k)  * dt
                enddo
             enddo
          ENDIF IF_KOUNT_NE_0
-      endif IF_ISBA_SVS
+      endif IF_ISBA_SVS_CLASS
 
 
       ! ISBA only accumulators/calc.
@@ -237,6 +272,74 @@ contains
 
       endif IF_SVS
 
+
+      ! CLASS only accumulators
+      IF_CLASS: if (schmsol == 'CLASS') then
+
+         ! Evaporation, sublimation, transpiration
+         MKPTR2D(zqfc   , qfc)
+         MKPTR2D(zqfcaf , qfcaf)
+         MKPTR1D(zqfcf  , qfcf)
+         MKPTR1D(zqfcfaf, qfcfaf)
+         MKPTR1D(zqfcl  , qfcl)
+         MKPTR1D(zqfclaf, qfclaf)
+         MKPTR1D(zqfg   , qfg)
+         MKPTR1D(zqfgaf , qfgaf)
+         MKPTR1D(zqfn   , qfn)
+         MKPTR1D(zqfnaf , qfnaf)
+
+         ! Reset accumulators at t=T+00hr
+         IF_RESET_CLASS: if (kount == 0 .or. &
+              (acchr > 0 .and. mod(step_driver-1, acchr) == 0) .or. &
+              (acchr == 0 .and. step_driver-1 == 0)) then
+
+            ! Reset accumulators at t=T+00hr
+            zoverflaf(:)    = 0.
+            zwfluxaf(:)     = 0.
+            zpotevaptraf(:) = 0.
+
+            zqfcaf(:,:)     = 0.
+            zqfcfaf(:)      = 0.
+            zqfclaf(:)      = 0.
+            zqfgaf(:)       = 0.
+            zqfnaf(:)       = 0.
+
+         endif IF_RESET_CLASS
+
+         ! Accumulate
+         IF_ACCUMUL_CLASS: if (kount /= 0) then
+            do i = 1, ni
+
+               !# Accumulation of drained water
+               !#  (soil base water flux, in kg/m2 or mm);
+               !#  factor 1000 is for density of water.
+!               zdrainaf(i) = zdrainaf(i) - 1000. * zdrain(i) * zrootdp(i)  !  Original Dorval line
+               zdrainaf(i) = zdrainaf(i) + zdrain(i) * dt      ! Changed by KW
+
+               !# Accumulation of surface runoff (in kg/m2 or mm)
+!               zoverflaf(i) = zoverflaf(i) + zoverfl(i)       !  Original Dorval line
+               zoverflaf(i) = zoverflaf(i) + zoverfl(i) * dt   ! Changed by KW
+
+               !# Accumulation of upwards surface water flux (in kg/m2 or mm)
+               zwfluxaf(i) = zwfluxaf(i) + zwflux(i) * dt
+
+               !# Accumulation of potential evapotranspiration (in kg/m2 or mm)
+               zpotevaptraf(i) = zpotevaptraf(i) + zpotevaptr(i) * dt
+
+            enddo
+
+            !# Accumulation of transpiration, sublimation, evaporation
+            zqfcaf(:,:) = zqfcaf(:,:) + zqfc(:,:) * dt
+            zqfcfaf(:)  = zqfcfaf(:)  + zqfcf(:)  * dt
+            zqfclaf(:)  = zqfclaf(:)  + zqfcl(:)  * dt
+            zqfgaf(:)   = zqfgaf(:)   + zqfg(:)   * dt
+            zqfnaf(:)   = zqfnaf(:)   + zqfn(:)   * dt
+
+
+         endif IF_ACCUMUL_CLASS
+
+      endif IF_CLASS
+
       ! CSLM only accumulators
       IF_CSLM: if (schmlake == 'CSLM') then
          
@@ -262,3 +365,13 @@ contains
    end subroutine sfc_calcdiag3
 
 end module sfc_calcdiag
+
+
+
+
+
+
+
+
+
+

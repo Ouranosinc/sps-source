@@ -240,7 +240,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 ! ----* DIAGNOSTIC OUTPUT FIELDS *-------------------------------------
       REAL,DIMENSION(N) :: FSGL, FLGL, HFSL, HEVL, HMFL, HTCL, DRAGL,       &
                              FSGS, FLGS, HFSS, HEVS, HMFN, HTCS, DRAGS,     &
-                             PCPL, QFL, PCPN, QFN, ROFN,                    &
+                             PCPL, QFL, PCPN, QFN_LOCAL, ROFN,                    &
                              CDH, CDM, TFLUX, EVAP, QFLUX,    &
                              EVPPOT, EVAPB, GT, DRAG,                &
                              ST, SU, SV, SQ, SH, QLWAVG, ALIR,        &
@@ -560,7 +560,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
           PCPL(I) =RHOW*RL(I)+RHOSNI(I)*SL(I)
           HTCS(I)=0.0
           HMFN(I)=0.0
-          QFN(I)=0.0
+          QFN_LOCAL(I)=0.0
           ROFN(I)=0.0
           GZEROSL(I)=0.0
           QMELTS(I)=0.0
@@ -651,12 +651,12 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
                   LZZ0,LZZ0T,FM,FH,ITER,NITER,JEVAP,KF)           
  
       CALL TLSPOST(GSNOW,TSNOW,WSNOW,RHOSNO,QMELTS,GZEROSL,           &
-                  TSNBOT,HTCS,HMFN,QFN,EVAPS,RPCN,TRPCN,SPCN,TSPCN,   &
+                  TSNBOT,HTCS,HMFN,QFN_LOCAL,EVAPS,RPCN,TRPCN,SPCN,TSPCN,   &
                   GCONSTS,GCOEFFS,T0,ZSNOW,TCSNOW,HCPSNO,QTRANSL,     &
                   RN,TR,SN,TS,TZEROS,RHOSNI,                          &
                   FLS,DELSKIN,ILG,IL1,IL2,N      )
                                                                         
-      CALL SNOVAP(RHOSNO,ZSNOW,HCPSNO,TSNOW,EVAPS,QFN,QFL,HTCS,       &
+      CALL SNOVAP(RHOSNO,ZSNOW,HCPSNO,TSNOW,EVAPS,QFN_LOCAL,QFL,HTCS,       &
                   WLOST,TRUNOF,RUNOFF,TOVRFL,OVRFLW,                  &
                   FLS,RPCN,SPCN,RHOSNI,WSNOW,ILG,IL1,IL2,N)
  
@@ -1273,8 +1273,8 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
           QSENS(I)=HFSL(I)+HFSS(I)
           TFLUX(I)=-QSENS(I)/(RHOAIR(I)*SPHAIR)
           QEVAP(I)=HEVL(I)+HEVS(I)
-          EVAP(I)=QFL(I)+QFN(I)
-	  zevlak(I) = zevlak(I) + QFL(I)/adj_cslm_liquevap * DELT + QFN(I) * DELT
+          EVAP(I)=QFL(I)+QFN_LOCAL(I)
+	  zevlak(I) = zevlak(I) + QFL(I)/adj_cslm_liquevap * DELT + QFN_LOCAL(I) * DELT
           QFLUX(I)=-EVAP(I)/RHOAIR(I)
           EVPPOT(I)=EVAP(I)
           EVAPB(I)=1.0
@@ -1329,7 +1329,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 ! EG_MOD2:
 ! do not remove evap. from liquid water from the lake in CSLM, but put it into lake outlet runoff
 ! to still close the water balance, and let the routing scheme remove the evaporation from lakes.
-!          HLAKSIL(I) = HLAKSIL(I) + (DELT*(PCPIN(I)-PCPN(I)-EVAP(I)+QFN(I)+ROFN(I)) &
+!          HLAKSIL(I) = HLAKSIL(I) + (DELT*(PCPIN(I)-PCPN(I)-EVAP(I)+QFN_LOCAL(I)+ROFN(I)) &
 !                       + ZROFINLAK(I) - ZRUNOFFTOT(I))/RHOW
 	  HLAKSIL(I) = HLAKSIL(I) + (DELT*(PCPIN(I)-PCPN(I)+ROFN(I)) &
                        + ZROFINLAK(I) - ZRUNOFFTOT(I))/RHOW
@@ -1342,7 +1342,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 ! EG_MOD3: in order to close the water balance due to not removing evap. from lake, change 
 ! the way LFXO is computed:
 !          LFXO(I) = LFXO(I)           + DELT*EVAP(I)  + ZRUNOFFTOT(I)
-	 LFXO(I) = LFXO(I)           + DELT*QFN(I)  + ZRUNOFFTOT(I)
+	 LFXO(I) = LFXO(I)           + DELT*QFN_LOCAL(I)  + ZRUNOFFTOT(I)
 ! END_EG_MOD3
 
           LSTD(I) = RHOW*HLAKSILM1(I) + SNOM1(I)      + WSNOWM1(I)
