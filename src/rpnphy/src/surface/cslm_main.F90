@@ -605,7 +605,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !     * STARTING "GROUND ALBEDOS" FOR ROUTINE SNOALBA.
 !
       DO 145 I=1,N
-        ALBW(I)=0.045/MAX(CSZ(I),0.1)          !std value for water
+        ALBW(I)=0.09/MAX(CSZ(I),0.1)          !std value for water !MLab mod (0.045)
 !
         ALBI(I)=0.08+0.44*(LKICEH(I))**0.28    !thin ice albedo (Vavrus et al 1996)
         ALBI(I)=MIN(ALBI(I),0.44)
