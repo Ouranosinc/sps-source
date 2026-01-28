@@ -5,7 +5,7 @@
 ! fixed lake parameters
       REAL, PARAMETER :: HLAKCON = 10.0
       REAL, PARAMETER :: LLAKCON =737.0
-      REAL, PARAMETER :: BLAKCON = 0.9
+      REAL, PARAMETER :: BLAKCON = 0.5
 ! fixed rating curve parameters for lake outflow
 !      REAL, PARAMETER :: RC1CON = 0.1
       REAL, PARAMETER :: RC1CON = 1.77143
