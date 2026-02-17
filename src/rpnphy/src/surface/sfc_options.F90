@@ -100,6 +100,10 @@ module sfc_options
    real :: dp_svs(MAX_NL_SVS) = -1.0
    namelist /surface_cfgs/ dp_svs
 
+   !# Depth of soil layers in [METERS] in CLASS land surface scheme (schmsol=CLASS)
+   real :: dp_class(MAX_NL_SVS) = -1.0
+   namelist /surface_cfgs/ dp_class
+
    !# Emissivity for ice (glacier and sea ice)
    !# * '_constant_' : A fixed floating point value used as a constant
    character(len=16) :: ice_emiss = '0.99'
