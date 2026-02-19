@@ -605,7 +605,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !
       DO 145 I=1,N
         !ALBW(I)=0.09/MAX(CSZ(I),0.1)          !std value for water ! MLab mod (initial 0.045)
-        ALBW(I)=0.05 + 0.025/MAX(CSZ(I),0.1)   !std value for water inc. diffuse part  ! (test Murray, 2026)
+        ALBW(I)=0.05 + 0.025/MAX(CSZ(I),0.1)   !std value for water inc. diffuse part  ! (test Murray, 2026)
 !
         ALBI(I)=0.08+0.44*(LKICEH(I))**0.28    !thin ice albedo (Vavrus et al 1996)
         ALBI(I)=MIN(ALBI(I),0.44)
