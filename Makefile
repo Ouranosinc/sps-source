@@ -11,6 +11,10 @@ MAKEFLAGS += --no-print-directory
 cmake:
 	( cd build-${SPS_ARCH} && cd `/bin/pwd` && cmake ${sps_DIR} )
 
+# Using installed RPN libraries (rmn, vgrid, rpncomm, tdpack) with strict mode (for C code)
+cmake-strict:
+	( cd build-${SPS_ARCH} && cd `/bin/pwd` && cmake -DSTRICT=TRUE ${sps_DIR} )
+
 # Using installed RPN libraries (rmn, vgrid, rpncomm, tdpack) and static Intel libraries
 cmake-static:
 	( cd build-${SPS_ARCH} && cd `/bin/pwd` && cmake -DSTATIC_INTEL=ON ${sps_DIR} )
@@ -26,6 +30,10 @@ cmake-debug:
 # Extra debug (see extra checks defined in cmake_rpn compiler presets and in CMakeLists.txt)
 cmake-debug-extra:
 	( cd build-${SPS_ARCH} && cd `/bin/pwd` && cmake -DCMAKE_BUILD_TYPE=Debug -DEXTRA_CHECKS=ON ${sps_DIR} )
+
+# Compile with nvhpc
+cmake-nvhpc:
+	( cd build-${SPS_ARCH} && cd `/bin/pwd` && cmake -DCOMPILER_SUITE=nvhpc ${sps_DIR} )
 
 .PHONY: build
 build:

@@ -1,4 +1,4 @@
- etk_S=spsyin000;
+ etk_S=ISBA;
  units_S=hour;
  datyp=134;
  closeopen=hours,24;

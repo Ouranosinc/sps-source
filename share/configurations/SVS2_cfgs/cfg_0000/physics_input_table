@@ -60,7 +60,7 @@ in=SVDP; freq=0; search=ANAL;      interp=near;mandatory=true;
 in=WSV; freq=0; search=ANAL;      interp=near; mandatory=true;
 in=WSN; freq=0; search=ANAL;      interp=near; mandatory=true;
 
-in=TGR ; freq=0; search=ANAL;      interp=near; levels= 1,2;mandatory=true;
+in=TGR ; freq=0; search=ANAL;      interp=near; mandatory=true;
 in=TSN ; freq=0; search=ANAL;      interp=near; levels= 1,2;mandatory=true;
 in=TSNV; freq=0; search=ANAL;      interp=near; levels= 1,2;mandatory=true;
 #in=TVG ; freq=0; search=ANAL;      interp=near; levels= 1,2;mandatory=true;
@@ -100,7 +100,7 @@ in=TSGV ; freq=0; search=ANAL;      interp=near;mandatory=true;
 
 #input for vegetation scheme scheme in SVS2
 in=TVGL ; freq=0; search=ANAL;      interp=near;mandatory=true;
-in=TVGH ; freq=0; search=ANAL;      interp=near; levels= 1,2; mandatory=true;
+in=TVGH ; freq=0; search=ANAL;      interp=near;mandatory=true;
 in=WVGH ; freq=0; search=ANAL;      interp=near;mandatory=true;
 in=WVGL ; freq=0; search=ANAL;      interp=near;mandatory=true;
 

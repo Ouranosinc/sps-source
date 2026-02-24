@@ -80,3 +80,4 @@ sps=6.3.0-a12;spsdyn=6.3.0-a10;rpnphy=6.3.0-a12;modelutils=1.8.0-a10
 sps=6.3.0-a13;spsdyn=6.3.0-a10;rpnphy=6.3.0-a13;modelutils=1.8.0-a10
 sps=6.3.0-a14;spsdyn=6.3.0-a11;rpnphy=6.3.0-a14+;modelutils=1.8.0-a10
 sps=6.3.0-a15;spsdyn=6.3.0-a11;rpnphy=6.3.0-a15sps;modelutils=1.8.0-a15
+sps=6.3.0-a16;spsdyn=6.3.0-a16;rpnphy=6.3.0-a16;modelutils=1.8.0-a16

@@ -28,13 +28,25 @@ endif()
 file(GLOB F_FILES src/base/*.F90)
 
 # Adding specific flags for sps
-if (("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel") AND NOT ("${CMAKE_SYSTEM_NAME}" STREQUAL "CrayLinuxEnvironment"))
+if (("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel" OR "${CMAKE_Fortran_COMPILER_ID}" STREQUAL "IntelLLVM") AND NOT ("${CMAKE_SYSTEM_NAME}" STREQUAL "CrayLinuxEnvironment"))
+  # Flag for MKL is different depending on Intel compiler version
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 2021)
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -qmkl -static-intel -diag-disable 5268")
-    set(CMAKE_EXE_LINKER_FLAGS_INIT "${CMAKE_EXE_LINKER_FLAGS_INIT} -qmkl")
+    set(MKL "-qmkl")
   else()
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -mkl -static-intel -diag-disable 5268")
-    set(CMAKE_EXE_LINKER_FLAGS_INIT "${CMAKE_EXE_LINKER_FLAGS_INIT} -mkl")
+    set(MKL "-mkl")
+  endif()
+set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MKL} -static-intel")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "${CMAKE_EXE_LINKER_FLAGS_INIT} -${MKL}")
+  # flags in addition to extra checks defined in cmake_rpn compiler presets
+  # https://www.intel.com/content/www/us/en/docs/fortran-compiler/developer-guide-reference/2023-0/alphabetical-option-list.html
+  if (EXTRA_CHECKS)
+    if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 2025)
+      # maximum is 3 with Intel 2025
+      set(OPT-REPORT "3")
+    else()
+      set(OPT-REPORT "5")
+    endif()
+    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -qopt-report=${OPT-REPORT} -C -init=snan,arrays -warn nointerfaces -check noarg_temp_created")
   endif()
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
   find_package(LAPACK)
@@ -53,7 +65,6 @@ target_link_libraries(spsdyn PRIVATE
    modelutils_tmg_stubs
    modelutils_ov_ifort
    ${phy_LIBRARIES}
-   ${cpl_LIBRARIES}
 )
 
 if ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")

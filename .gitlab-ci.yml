@@ -18,7 +18,6 @@ build:rhel-8-amd64_gnu-9.3.0:
   stage: build
   script:
     - set +e
-    - . ${ECCI_ENV}/latest/profile.sh
     - . ./.eccc_setup_gnu
     - . ./.initial_setup
     - set -e
@@ -30,7 +29,6 @@ build:rhel-8-icelake-64-intel-2022.1.2:
   stage: build
   script:
     - set +e
-    - . ${ECCI_ENV}/latest/profile.sh
     - . ./.eccc_setup_intel
     - . ./.initial_setup
     - set -e

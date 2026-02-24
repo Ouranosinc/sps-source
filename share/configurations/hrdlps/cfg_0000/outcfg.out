@@ -1,4 +1,4 @@
- etk_S=HLPS_XIMS1;
+ etk_S=HRDLPS;
  units_S=hour;
  datyp=134;
  closeopen=hours,1;

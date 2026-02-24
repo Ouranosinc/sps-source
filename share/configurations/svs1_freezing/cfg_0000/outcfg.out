@@ -1,4 +1,4 @@
-etk_S=SVS;
+etk_S=SVS FREEZE;
 units_S=hour;
 datyp=134;
 closeopen=hours,1;
