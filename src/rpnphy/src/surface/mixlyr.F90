@@ -193,8 +193,8 @@
 !
        H2=HLAK(I)-HDPTH(I)
        IF (H2 .GE. 1.0E-12 .AND. GRED(I) .GT. 0.0) THEN
-         TI=2.0*LLAK(I)/(SQRT(GRED(I)*HDPTH(I)*H2/HLAK(I)))
-!        TI=0.0         !test mdm to turn off shear term
+!         TI=2.0*LLAK(I)/(SQRT(GRED(I)*HDPTH(I)*H2/HLAK(I))) ! MLab mod
+        TI=0.0         !test mdm to turn off shear term
        ELSE
          TI=0.0
        ENDIF
