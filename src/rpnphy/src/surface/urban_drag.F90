@@ -306,9 +306,9 @@ stat = sl_sfclayer(PTA/PEXNA,PQA,PVMOD,PVDIR,PUREF,PZREF, &
    endif
 !
 ! ztrfzt not declared if thermal_stress is off
-IF_THERMAL_STRESS: if ( thermal_stress ) then
+IF_THERMAL_STRESS_ROOF: if ( thermal_stress ) then
     WHERE (PZREF(:)<=(zt+1.0)) ztrfzt(:) = PTA(:)    !/PEXNA(:)
-endif IF_THERMAL_STRESS
+endif IF_THERMAL_STRESS_ROOF
 WHERE (PZREF(:)<=zt) zuzt(:)   = PVMOD(:)/ 2**0.5
 WHERE (PZREF(:)<=zt) zvzt(:)   = PVMOD(:)/ 2**0.5
 !
@@ -399,9 +399,9 @@ do JLOOP=1,3
    PAC_ROAD(:) = (cmu(:)*ctu(:)/ue(:)**2)  * (PU_CAN(:)+ZW_CAN(:))
 
 ! ztrdzt not declared if thermal_stress is off
-IF_THERMAL_STRESS: if ( thermal_stress ) then
+IF_THERMAL_STRESS_ROAD: if ( thermal_stress ) then
     WHERE (PBLD_HEIGHT(:)<=(zt*2.0)) ztrdzt(:) = PT_CANYON(:) 
-endif IF_THERMAL_STRESS
+endif IF_THERMAL_STRESS_ROAD
 !
   ZQ0(:)     = (PTS_ROAD(:) - PT_CANYON(:)) * PAC_ROAD(:) &
               +(PTS_WALL(:) - PT_CANYON(:)) * PAC_WALL(:) * PWALL_O_ROAD(:)
