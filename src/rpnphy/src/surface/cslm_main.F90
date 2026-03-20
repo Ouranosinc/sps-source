@@ -372,7 +372,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 ! TODO: These should be geophysical input data
       DO I=1,N
 !        HLAK(I)=HLAKCON
-        HLAK(I)=-ZLAKD(I)        ! Read from geophysical data (in negative meters)
+        HLAK(I)=ZLAKD(I)        ! MLab mod (geophys dataset not negative, in meters)
         IF (HLAK(I).LE.0.0) THEN ! Replace zero values with constant value for points where
           HLAK(I)=HLAKCON        ! VF3 is greater than zero but there is no data on depth (i.e. openstreet map data)
         ENDIF
@@ -605,7 +605,9 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !     * STARTING "GROUND ALBEDOS" FOR ROUTINE SNOALBA.
 !
       DO 145 I=1,N
+
         ALBW(I)=0.09/MAX(CSZ(I),0.1)          !std value for water !MLab mod (0.045)
+
 !
         ALBI(I)=0.08+0.44*(LKICEH(I))**0.28    !thin ice albedo (Vavrus et al 1996)
         ALBI(I)=MIN(ALBI(I),0.44)
