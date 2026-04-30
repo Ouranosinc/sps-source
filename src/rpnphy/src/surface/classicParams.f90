@@ -1041,11 +1041,11 @@ contains
 
     read(10,nml = classicparams)
 
-print *,'classicParams: classpfts:',classpfts
-print *,'classicParams: ican:',ican
-do i=1,ican
-  print *,'classicParams: i,classpfts:',i,classpfts(i)
-enddo
+!print *,'classicParams: classpfts:',classpfts
+!print *,'classicParams: ican:',ican
+!do i=1,ican
+!  print *,'classicParams: i,classpfts:',i,classpfts(i)
+!enddo
     close(10)
 
     numcrops    = 0        !< number of crop pfts
