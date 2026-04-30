@@ -167,7 +167,7 @@ contains
                   ztrunofftotaf(i,k) = zrunofftotaf(i,k) + zdraintotaf(i,k)
 
                   ! Total evaporation (kg/m2)
-                  zevapototaf(i,k)   = zevapototaf(i,k)  + zevapotot(i,k)  * dt
+                  zevapototaf(i,k)   = zevapototaf(i,k)  + zevapotot(i,k)  !* dt
                enddo
             enddo
          ENDIF IF_KOUNT_NE_0
@@ -319,11 +319,11 @@ contains
                !# Accumulation of drained water
                !#  (soil base water flux, in kg/m2 or mm);
                !#  factor 1000 is for density of water.
-!               zdrainaf(i) = zdrainaf(i) - 1000. * zdrain(i) * zrootdp(i)  !  Original Dorval line
+               !zdrainaf(i) = zdrainaf(i) - 1000. * zdrain(i) * zrootdp(i)  !  Original Dorval line
                zdrainaf(i) = zdrainaf(i) + zdrain(i) * dt      ! Changed by KW
 
                !# Accumulation of surface runoff (in kg/m2 or mm)
-!               zoverflaf(i) = zoverflaf(i) + zoverfl(i)       !  Original Dorval line
+               !zoverflaf(i) = zoverflaf(i) + zoverfl(i)       !  Original Dorval line
                zoverflaf(i) = zoverflaf(i) + zoverfl(i) * dt   ! Changed by KW
 
                !# Accumulation of upwards surface water flux (in kg/m2 or mm)

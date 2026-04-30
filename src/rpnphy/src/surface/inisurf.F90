@@ -351,7 +351,8 @@ subroutine inisurf4(pvars, kount, ni, nk)
       enddo
    endif
 
-   if (any('tsoil' == phyinread_list_s(1:phyinread_n))) then
+   if (any('tsoil' == phyinread_list_s(1:phyinread_n)) .and. &
+          all('tsrad' /= phyinread_list_s(1:phyinread_n))) then
       do i=1,ni
          ztsrad(i) = ztsoil(i,1)
       enddo
