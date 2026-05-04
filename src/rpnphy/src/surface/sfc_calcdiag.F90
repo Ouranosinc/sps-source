@@ -161,13 +161,13 @@ contains
             !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
             do k=1,nsurf+1
                do i=1,ni
-                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)  * dt ! in CRCM CODE (CG)
-                  zdraintotaf(i,k)   = zdraintotaf(i,k)  + zdraintot(i,k)  * dt
+                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)
+                  zdraintotaf(i,k)   = zdraintotaf(i,k)  + zdraintot(i,k)
                   ztrunofftot(i,k)   = zrunofftot(i,k)   + zdraintot(i,k)
                   ztrunofftotaf(i,k) = zrunofftotaf(i,k) + zdraintotaf(i,k)
 
                   ! Total evaporation (kg/m2)
-                  zevapototaf(i,k)   = zevapototaf(i,k)  + zevapotot(i,k)  !* dt
+                  zevapototaf(i,k)   = zevapototaf(i,k)  + zevapotot(i,k)
                enddo
             enddo
          ENDIF IF_KOUNT_NE_0
