@@ -755,7 +755,7 @@ subroutine class_main (BUS, BUSSIZ, &
   ! Surface fields
   ! ==============
   ZSNOW     (1:N)      => bus( x(SNODP  ,1,indx_sfc ) : )  ! outout snow depth
-  ZEVAPOTOT (1:n) => bus( x(EVAPOTOT,1,indx_sfc) : )   ! output total evaporation [kg/m^2/s]
+  ZEVAPOTOT (1:n) => bus( x(EVAPOTOT,1,indx_sfc) : )   ! output total evaporation [kg/m^2]
   ZEVPPOT   (1:N)      => bus( x(POTEVAPTR,1,1      ) : )  ! output potential evapotranspiration
 
   ! Fields initialized at kount==0
@@ -1906,8 +1906,8 @@ subroutine class_main (BUS, BUSSIZ, &
          SV = SV * VMOD0 / VMOD
       endif
 
-      zRUNOFFTOT(:) = ZOVRFLW(:)
-      zDRAINTOT(:)  = ZBASFLW(:)
+      zRUNOFFTOT(:) = ZOVRFLW(:) * DT ! Conversion kg m-2 s-1 to kg m-2
+      zDRAINTOT(:)  = ZBASFLW(:) * DT ! Conversion kg m-2 s-1 to kg m-2
       ztdiagtyp(:)  = st(:)
       ztdiagtypv(:) = st(:)
       zqdiagtyp(:)  = sq(:)
@@ -1977,7 +1977,7 @@ subroutine class_main (BUS, BUSSIZ, &
    endif IF_THERMAL_STRESS
 
 ! Copy surface averaged fields into fields for each surface fraction (FR)
-ZEVAPOTOT = EVAPO
+ZEVAPOTOT = EVAPO * DT ! Conversion kg m-2 s-1 to kg m-2
 
 ! Recalculate FVAP from EVAPO (FR)
 ZFVAP     = EVAPO/RHOAIR
