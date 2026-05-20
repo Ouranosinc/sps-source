@@ -143,6 +143,9 @@ subroutine classic_main (BUS, BUSSIZ, &
   integer :: IC,ICP1,IPAI,IHGT,IALC,IALS,IALG,IPCP, ICC,ICCP1
   integer :: IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM       !,ILW
   integer :: NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI
+  character(len=7) :: fracSnowParam
+  character(len=7) :: snoAlbedoParam
+
 !  logical :: DOTILE, DOPREC
   logical :: kount0  !to determine if we should run the initializations
   !inside KOUNT_EQ_0
@@ -203,7 +206,7 @@ subroutine classic_main (BUS, BUSSIZ, &
       real :: BCSNO(N)         ! Black carbon mixing ratio [kg/m^3]
       real :: TRSNOWC(N)       ! Transmissivity of snow under vegetation to shortwave radiation
       real :: TRSNOWG(N,NBS)   ! Transmissivity of snow in bare areas to shortwave radiation
-      real :: ALTG(N,NBS)      
+      real :: ALTG(N,NBS)      ! Total albedo in each modelled wavelength band
       real :: ALSNO(N,NBS)     ! Albedo of snow in each modelled wavelength band []
       real :: ZTHLW(n,ig)      ! Soil water content at wilting point $[m^3/m^3]
       real :: TCSNOW(N)        ! Thermal conductivity of snow  $[W/m/K ]
@@ -212,11 +215,16 @@ subroutine classic_main (BUS, BUSSIZ, &
       real :: SFCUBS(N)        ! Zonal surface wind velocity for CCCma black carbon scheme [m/s]
       real :: SFCVBS(N)        ! Meridional surface wind velocity for CCCma black carbon scheme [m/s]
       real :: USTARBS(N)       ! Friction velocity for CCCma black carbon scheme [m/s]
+      real :: USTARBS_GA(N)    ! Grid average friction velocity to be used in nitrogen volatilization [m/s]
+      real :: CFLUX_GA(N)      ! Grid average CFLUX
       ! Peatland variables, not used when ipeatland=0, just place holders
       real :: DAYL(N)          ! DAYLENGTH FOR THAT LOCATION
       real :: DAYL_MAX(N)      ! MAXIMUM DAYLENGTH FOR THAT LOCATION
       real :: ancsmoss(n), angsmoss(n), ancmoss(n), angmoss(n), rmlcsmoss(n), rmlgsmoss(n), &
               rmlcmoss(n), rmlgmoss(n), Cmossmas(n), dmoss(n), pdd(n)
+      real :: Nmossmas(n)      ! moss biomass N pool [N/m2]
+      real :: maxSNO(n)        !Effective maximum snow mass used in recession curve [kg m-2]
+
 
 ! Local fields added for CLASS 3.6
       real,pointer,dimension(:)   ::  ZSLP, ZARE, ZLEG, ZANIS, ZEXCW, ZLBEDR, ZWTNEW
@@ -252,6 +260,11 @@ subroutine classic_main (BUS, BUSSIZ, &
 ! Peatland field for bog and fen peatlands
 ! Joe is till working on this so for now this field does not get read in but set to 0
       integer :: ipeatland(n)
+      character(len=8), dimension(:) :: mossPresentrow(n)
+      character(len=8), dimension(:) :: peatlandTyperow(n)
+      logical :: KsatScalaron
+      logical :: Ncycle_on
+      logical :: NcycleConnect_on
 
 
 ! Thickness and depth of each soil layer in meters
@@ -322,11 +335,19 @@ subroutine classic_main (BUS, BUSSIZ, &
   real,pointer,dimension(:,:) :: ZSW4TOTL  !  input Total   solar radiation in each modelled wavelength band [W/m^2]
   real,pointer,dimension(:,:) :: ZSW4DRCT  !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
   real,pointer,dimension(:,:) :: ZSW4DIFF  !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
-  real,pointer,dimension(:,:) :: ZSOCI     ! input Soil colour index
-
+  real,pointer,dimension(:)   :: ZSOCI     !  input Soil colour index
+  real,pointer,dimension(:) :: ZDSL        !  Thickness of dry surface layer
+  real,pointer,dimension(:) :: ZDSLC       !  Thickness of dry surface layer under canopy
+  real,pointer,dimension(:) :: LAIPAIRatio   !  LAI to PAI ratio for canopy over bare ground []
+  real,pointer,dimension(:) :: LAISPAISRatio  ! LAI to PAI ratio for canopy over snow []
+  real,pointer,dimension(:) :: STDA        !  Diagnosed screen-level dew point temperature [K]
+  real,pointer,dimension(:) :: ZRB         !  Leaf boundary resistance of vegetation [s/m]
+  real,pointer,dimension(:) :: stddevTopography !  Standard deviation of elevation [m]
 
 ! New arrays for coupling CLASS and CTEM
       REAL,POINTER,DIMENSION(:,:) :: ZGLEAFMAS
+      REAL,POINTER,DIMENSION(:,:) :: ZNGLEAFMAS
+      REAL,POINTER,DIMENSION(:,:) :: ZAVESMFUNC
       REAL,POINTER,DIMENSION(:,:) :: ZBLEAFMAS
       REAL,POINTER,DIMENSION(:,:) :: ZSTEMMASS
       REAL,POINTER,DIMENSION(:,:) :: ZROOTMASS
@@ -386,6 +407,9 @@ subroutine classic_main (BUS, BUSSIZ, &
 
       REAL,POINTER,DIMENSION(:) :: ZCFLUXCG
       REAL,POINTER,DIMENSION(:) :: ZCFLUXCS
+      REAL,POINTER,DIMENSION(:,:) :: ZVCMAX0
+      REAL,POINTER,DIMENSION(:,:) :: redcoeff_vcmax
+      REAL,POINTER,DIMENSION(:) :: redcoeff_vcmaxMoss
 
       REAL,POINTER,DIMENSION(:,:) :: ZPFCANCMX
       REAL,POINTER,DIMENSION(:,:) :: ZNFCANCMX
@@ -634,6 +658,12 @@ subroutine classic_main (BUS, BUSSIZ, &
 ! Peatland field for bog and fen peatlands
 ! Joe is till working on this so for now this field does not get read in but set to 0
   ipeatland = 0
+  peatlandTyperow = 'None'
+  mossPresentrow = 'None'
+  KsatScalaron = .false.
+  Ncycle_on = .false.
+  NcycleConnect_on = .false.
+
   isnoalb = 0    ! New in CLASSIC (KW)
                  ! 0: original two-band snow albedo algorithms are used. 
                  ! 1: the new four-band routines are used.
@@ -700,7 +730,7 @@ subroutine classic_main (BUS, BUSSIZ, &
   ZSW4TOTL  (1:N,1:NBS) => bus( x(SW4TOTL,1,1) : )    !  input Total   solar radiation in each modelled wavelength band [W/m^2]
   ZSW4DRCT  (1:N,1:NBS) => bus( x(SW4DRCT,1,1) : )    !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
   ZSW4DIFF  (1:N,1:NBS) => bus( x(SW4DIFF,1,1) : )    !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
-  ZSOCI     (1:N) => bus( x(SOCI,1,1 ) : )            !  input Soil colour index
+  ZSOCI     (1:N) => bus( x( SOCI ,1,1 ) : )          !  input Soil colour index
 
 
 
@@ -771,6 +801,13 @@ subroutine classic_main (BUS, BUSSIZ, &
 
 
   ! New CLASSIC fields (KW)
+  ZDSL      (1:N)      => bus( x( DSL   ,1,1 ) : )    !  Thickness of dry surface layer
+  ZDSLC     (1:N)      => bus( x( DSLC  ,1,1 ) : )    !  Thickness of dry surface layer under canopy
+  LAIPAIRatio      (1:N)      => bus( x( LAIPAIRATIO   ,1,1 ) : )    ! LAI to PAI ratio for canopy over bare ground [] 
+  LAISPAISRatio    (1:N)      => bus( x( LAISPAISRatio   ,1,1 ) : )    ! LAI to PAI ratio for canopy over snow [] 
+  STDA      (1:N)      => bus( x( SFCTDGAT  ,1,1 ) : )    !  Diagnosed screen-level dew point temperature [K]
+  ZRB       (1:N)      => bus( x( RB   ,1,1 ) : )    !  Leaf boundary resistance of vegetation [s/m]
+  stddevTopography(1:N) => bus( x( stddevTopography, 1,1 ) : )    !  Standard deviation of elevation
   ! Fields for ISNOALB==1 for now ISNOALB=0
   REFSNO    (1:N)      => bus( x(SNOWSIZE,1,1) : ) !  inout Snow grain size [m]
   REFSNO = 0.001 ! Only for now!!! Later it needs to get read in!!! ToDo
@@ -1020,6 +1057,7 @@ subroutine classic_main (BUS, BUSSIZ, &
 
 ! CTEM fields
     ZGLEAFMAS    (1:N,1:ICC)      => bus( x( GLEAFMAS,1,1 ) : ) !CTEM input
+    ZNGLEAFMAS   (1:N,1:ICC)      => bus( x( NGLEAFMAS,1,1 ) : ) !CTEM input
     ZBLEAFMAS    (1:N,1:ICC)      => bus( x( BLEAFMAS,1,1 ) : ) !CTEM input
     ZSTEMMASS    (1:N,1:ICC)      => bus( x( STEMMASS,1,1 ) : ) !CTEM input
     ZROOTMASS    (1:N,1:ICC)      => bus( x( ROOTMASS,1,1 ) : ) !CTEM input
@@ -1085,6 +1123,10 @@ subroutine classic_main (BUS, BUSSIZ, &
     ZSLAIC       (1:N,1:IC)       => bus( x( SLAIC    ,1,1 ) : ) !CTEM
     ZCFLUXCG     (1:N)            => bus( x( CFLUXCG  ,1,1 ) : ) !CTEM (CLASST input)
     ZCFLUXCS     (1:N)            => bus( x( CFLUXCS  ,1,1 ) : )
+    ZVCMAX0      (1:N,1:ICC)      => bus( x( VCMAX0   ,1,1 ) : ) !CTEM
+    ZAVESMFUNC   (1:N,1:ICC)      => bus( x( AVESMFUNC,1,1 ) : ) !CTEM
+    redcoeff_vcmax  (1:N,1:ICC)   => bus( x( redcoeff_vcmax,1,1 ) : ) !CTEM
+    redcoeff_vcmaxMoss (1:N)      => bus( x( redcoeff_vcmaxMoss,1,1 ) : ) !CTEM
     ZPFCANCMX    (1:N,1:ICC)      => bus( x( PFCANCMX ,1,1 ) : )
     ZNFCANCMX    (1:N,1:ICC)      => bus( x( NFCANCMX ,1,1 ) : )
     ZNPP         (1:N)            => bus( x( NPP      ,1,1 ) : ) !CTEM output
@@ -1320,7 +1362,7 @@ subroutine classic_main (BUS, BUSSIZ, &
 !print*,'class_main ALVIS_SOL      :',minval(ALVIS_SOL),maxval(ALVIS_SOL),sum(ALVIS_SOL)/(N)
 !print*,'class_main ZFL            :',minval(ZFL),maxval(ZFL),sum(ZFL)/(N)
 !print*,'class_main ZSDEPTH        :',minval(ZSDEPTH),maxval(ZSDEPTH),sum(ZSDEPTH)/(N)
-print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
+!print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !print*,'class_main ZFCANMX        :',minval(ZFCANMX),maxval(ZFCANMX),sum(ZFCANMX)/(N*ICP1)
 !print*,'class_main ZZOLN          :',minval(ZZOLN),maxval(ZZOLN),sum(ZZOLN)/(N*ICP1)
 !print*,'class_main ZALVSC         :',minval(ZALVSC),maxval(ZALVSC),sum(ZALVSC)/(N*ICP1)
@@ -1438,6 +1480,16 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
     IALG  = 0
     IPCP  = 4
 
+! Fractional snow cover switch:
+    fracSnowParam = 'SL12'     ! Two options: 'Default' uses the original default CLASS scheme, SCF->SD/0.1.
+                               ! while 'SL12' uses the SL12 scheme (Swenson and Lawrence, 2012). 
+
+    ! Albedo scheme switches:
+    snoAlbedoParam = '2-band'   ! Options: '2-band' - the original CLASS two-band snow albedo algorithms OR 
+                                ! '4-band' - CanESM's four-band routines. '4-band' also then requires the 
+                                ! alb4BandParamsFile to be specified and optionally, one can run with black carbon deposition 
+                                ! considered by setting blackCdepon to true.
+                                ! At present, the four band algorithm is NOT recommended to be used offline.
 
 
 !*************************************************************
@@ -1465,23 +1517,23 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !
 
 !if (trnch==17) then
-!  print *,'class_main: ZSAND(1,1):',ZSAND(1,1)
+!print *,'classic_main: peatlandTyperow:',peatlandTyperow
 !endif
-                call classb(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, &
-                            ZTHLRAT, ZHCPS, ZTCS, ZTHFC,        ZPSIWLT,     &
-                            ZDELZW, ZZBOTW, ZALGWET,        ZALGDRY,         &
-                            ZSAND, ZCLAY, ZORGM,           DELZ, ZBOT, ZSDEPTH,  &
-                            ISAND, igdr, N, NMIM, 1, N, NMIM, IG,            &
-                            ictemmod, ZWT,maxd,igwscheme)
+                ! call classb(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, &
+                !             ZTHLRAT, ZHCPS, ZTCS, ZTHFC,        ZPSIWLT,     &
+                !             ZDELZW, ZZBOTW, ZALGWET,        ZALGDRY,         &
+                !             ZSAND, ZCLAY, ZORGM,           DELZ, ZBOT, ZSDEPTH,  &
+                !             ISAND, igdr, N, NMIM, 1, N, NMIM, IG,            &
+                !             ictemmod, ZWT,maxd,igwscheme)
 
-                ! call soilProperties(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, & ! Formerly CLASSB
-                !           ZTHLRAT, ZHCPS, ZTCS, ZTHFC, ZTHLW, ZPSIWLT, &
-                !           ZDELZW, ZZBOTW, &
-                !           ZALGWV, ZALGWN, ZALGDV, ZALGDN, &
-                !           ZSAND, ZCLAY, ZORGM, ZSOCI, DELZ, ZBOT, &
-                !           ZSDEPTH, ISAND, igdr, &
-                !           N, NMIM, 1, N, NMIM, IG, ipeatland, &
-                !           mossPresentrow, KsatScalaron)
+                call soilProperties(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, & ! Formerly CLASSB
+                          ZTHLRAT, ZHCPS, ZTCS, ZTHFC, ZTHLW, ZPSIWLT, &
+                          ZDELZW, ZZBOTW, &
+                          ZALGWV, ZALGWN, ZALGDV, ZALGDN, &
+                          ZSAND, ZCLAY, ZORGM, ZSOCI, DELZ, ZBOT, &
+                          ZSDEPTH, ISAND, igdr, &
+                          N, NMIM, 1, N, NMIM, IG, peatlandTyperow, &
+                          mossPresentrow, KsatScalaron)
 
 
 !if (trnch==17) then
@@ -1578,14 +1630,14 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !if (trnch==50) then
 !  print *,'class_main: TBAR(28,:):',TS(28,:)
 !endif
-!         CALL atmosphericVarsCalc(VPD, TADP, PADRY, RHOAIR, RHOSNI, RPCP, TRPCP, & ! Formerly CLASSI
-!                                  SPCP, TSPCP, TA, QA, PCPR, RRATE, SRATE,       &
-!                                  PS, IPCP, N, I, J)
+        CALL atmosphericVarsCalc(VPD, TADP, PADRY, RHOAIR, RHOSNI, RPCP, TRPCP, & ! Formerly CLASSI
+                                 SPCP, TSPCP, TA, QA, PCPR, RRATE, SRATE,       &
+                                 PS, IPCP, N, I, J)
 
 !print*,'class_main before CLASSI'
-                      CALL CLASSI(VPD, TADP, PADRY, RHOAIR, RHOSNI, RPCP, TRPCP, &
-                                  SPCP, TSPCP, TA, QA, PCPR, RRATE, SRATE,       &
-                                  PS, IPCP, N, I, J)
+                      ! CALL CLASSI(VPD, TADP, PADRY, RHOAIR, RHOSNI, RPCP, TRPCP, &
+                      !             SPCP, TSPCP, TA, QA, PCPR, RRATE, SRATE,       &
+                      !             PS, IPCP, N, I, J)
 
 
       ! ToDo: Add call to energyWaterBalanceCheck (0,...)
@@ -1598,71 +1650,72 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !print *,'class_main 000: trnch,ZSNOW(:):', trnch,ZSNOW(:)
 !print *,'class_main 000: trnch,XSNO(:):', trnch,XSNO(:)
 !print *,'class_main 000: trnch,ZRHOSNO(:):', trnch,ZRHOSNO(:)
-!         CALL  radiationDriver(FFC, FG, FCS, FGS, ALVSCN, ALIRCN, & ! Formerly CLASSA
-!                               ALVSG,  ALIRG,  ALVSCS, ALIRCS, ALVSSN, ALIRSN, &
-!                               ALVSGC, ALIRGC, ALVSSC, ALIRSC, TRVSCN, TRIRCN, &
-!                               TRVSCS, TRIRCS, FSVF,   FSVFS, &
-!                               RAICAN, RAICNS, SNOCAN, SNOCNS, FRAINC, FSNOWC, &
-!                               FRAICS, FSNOCS, DISP,   DISPS,  ZOMLNC, ZOMLCS, &
-!                               ZOELNC, ZOELCS, ZOMLNG, ZOMLNS, ZOELNG, ZOELNS, &
-!                               CHCAP,  CHCAPS, CMASSC, CMASCS, CWLCAP, CWFCAP, &
-!                               CWLCPS, CWFCPS, RC,     RCS,    RBCOEF, FROOT, &
-!                               FROOTS, ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZSNOW, &
-!                               ZWSNOW, ZALVS,  ZALIR,  ZHTCC,  ZHTCS,  ZHTC, &
-!                               ALTG,   ALSNO,  TRSNOWC,TRSNOWG, &
-!                               ZWTRC,  ZWTRS,  ZWTRG,  ZCMAI,  ZFSNOW, &
-!                               ZFCANMX,ZZOLN,  ZALVSC, ZALIRC, ZPAIMAX,ZPAIMIN, &
-!                               ZCWGTMX,ZZRTMAX,ZRSMIN, ZQA50,  ZVPDA,  ZVPDB, &
-!                               ZPSIGA, ZPSIGB, PAIDAT, HGTDAT, ACVDAT, ACIDAT, &
-!                               ASVDAT, ASIDAT, AGVDAT, AGIDAT, &
-!                               ZALGWV, ZALGWN, ZALGDV, ZALGDN, &
-!                               THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
-!                               ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
-!                               ZZ0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
-!                               FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
-!                               ZSW4DRCT, ZSW4DIFF, REFSNO, BCSNO, &
-!                               QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
-!                               ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &
-!                               ZHCPS,  ISAND, &
-!                               ZFCANCMX,ICC,ctem_on,ZRMATC,ZZOLNC,ZCMASVEGC, &
-!                               ZAILC,  ZPAIC,  NOL2PFTS,ZSLAIC, &
-!                               ZAILCG, ZAILCGS,ZFCANC, ZFCANCS, &
-!                               IDAY,   N,      I,      J,      NBS, &
-!                               TRNCH,kount,  IC,     ICP1,   IG,     IDISP,  IZREF, &
-!                               IWF,    IPAI,   IHGT,   IALC,   IALS,   IALG, &
-!                               ISNOALB,ZALVSCTM, ZALIRCTM, ipeatland)
-
 !print*,'class_main before CLASSA'
-               CALL  CLASSA(FFC,    FG,     FCS,    FGS,    ALVSCN, ALIRCN, &
-                   ALVSG,  ALIRG,  ALVSCS, ALIRCS, ALVSSN, ALIRSN, &
-                   ALVSGC, ALIRGC, ALVSSC, ALIRSC, TRVSCN, TRIRCN, &
-                   TRVSCS, TRIRCS, FSVF,   FSVFS, &
-                   RAICAN, RAICNS, SNOCAN, SNOCNS, FRAINC, FSNOWC, &
-                   FRAICS, FSNOCS, DISP,   DISPS,  ZOMLNC, ZOMLCS, &
-                   ZOELNC, ZOELCS, ZOMLNG, ZOMLNS, ZOELNG, ZOELNS, &
-                   CHCAP,  CHCAPS, CMASSC, CMASCS, CWLCAP, CWFCAP, &
-                   CWLCPS, CWFCPS, RC,     RCS,    RBCOEF, FROOT, &
-                   ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, TRSNOW, ZSNOW, &
-                   ZWSNOW, ZALVS,  ZALIR,  ZHTCC,  ZHTCS,  ZHTC, &
-                   ZWTRC,  ZWTRS,  ZWTRG,  ZCMAI,  ZFSNOW, &
-                   ZFCANMX,ZZOLN,  ZALVSC, ZALIRC, ZPAIMAX,ZPAIMIN, &
-                   ZCWGTMX,ZZRTMAX,ZRSMIN, ZQA50,  ZVPDA,  ZVPDB, &
-                   ZPSIGA, ZPSIGB, PAIDAT, HGTDAT, ACVDAT, ACIDAT, &
-                   ASVDAT, ASIDAT, AGVDAT, AGIDAT, ZALGWET,ZALGDRY, &
-                   THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
-                   ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
-                   ZZ0ORO, ZZ0VEG, SNOLIM, ZPLMG0, ZPLMS0, &
-                   FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
-                   QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
-                   ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &
-                   ZHCPS,  ISAND, &
-                   ZFCANCMX,ICC,ictemmod,ZRMATC,ZZOLNC,ZCMASVEGC, &
-                   ZAILC,ZPAIC,3, NOL2PFTS,ZSLAIC, &
-                   ZAILCG,   ZAILCGS,  ZFCANC, ZFCANCS, &
-                   IDAY,   N,      I,      J, &
-                   TRNCH,kount,  IC,     ICP1,   IG,     IDISP,  IZREF, &
-                   IWF,    IPAI,   IHGT,   IALC,   IALS,   IALG, &
-                   ZALVSCTM, ZALIRCTM)
+              CALL radiationDriver(FFC, FG, FCS, FGS, ALVSCN, ALIRCN, & ! Formerly CLASSA
+                         ALVSG, ALIRG, ALVSCS, ALIRCS, ALVSSN, ALIRSN, &
+                         ALVSGC, ALIRGC, ALVSSC, ALIRSC, TRVSCN, TRIRCN, &
+                         TRVSCS, TRIRCS, FSVF, FSVFS, &
+                         RAICAN, RAICNS, SNOCAN, SNOCNS, FRAINC, FSNOWC, &
+                         FRAICS, FSNOCS, DISP, DISPS, ZOMLNC, ZOMLCS, &
+                         ZOELNC, ZOELCS, ZOMLNG, ZOMLNS, ZOELNG, ZOELNS, &
+                         CHCAP, CHCAPS, CMASSC, CMASCS, CWLCAP, CWFCAP, &
+                         CWLCPS, CWFCPS, RC, RCS, RBCOEF, FROOT, &
+                         FROOTS, ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZSNOW, &
+                         ZWSNOW, ZALVS, ZALIR, ZHTCC, ZHTCS, ZHTC, &
+                         ALTG, ALSNO, TRSNOWC, TRSNOWG, &
+                         ZWTRC, ZWTRS, ZWTRG, ZCMAI, ZFSNOW, &
+                         ZFCANMX, ZZOLN, ZALVSC, ZALIRC, ZPAIMAX, ZPAIMIN, &
+                         ZCWGTMX, ZZRTMAX, ZRSMIN, ZQA50, ZVPDA, ZVPDB, &
+                         ZPSIGA, ZPSIGB, PAIDAT, HGTDAT, ACVDAT, ACIDAT, &
+                         ASVDAT, ASIDAT, AGVDAT, AGIDAT, &
+                         ZALGWV, ZALGWN, ZALGDV, ZALGDN, &
+                         THLIQ, THICE, TS, ZRCAN, ZSCAN, ZTCAN, &
+                         ZGROWTH, XSNO, ZTSNOW, ZRHOSNO, ZALBSNO, ZBLEND, &
+                         ZZ0ORO, SNOLIM, ZPLMG0, ZPLMS0, &
+                         FCLOUD, TA, VPD, RHOAIR, COSZS, &
+                         ZSW4DRCT, ZSW4DIFF, REFSNO, BCSNO, &
+                         QSWINV, ZDLAT, ZDLON, RHOSNI, DELZ, ZDELZW, &
+                         ZZBOTW, ZTHPOR, ZTHLMIN, ZPSISAT, ZBI, ZPSIWLT, &
+                         ZHCPS, ISAND, &
+                         ZFCANCMX, ICC, ictemmod, ZRMATC, ZZOLNC, &
+                         ZCMASVEGC, ZAILC, ZPAIC, NOL2PFTS, &
+                         ZSLAIC, ZAILCG, ZAILCGS, ZFCANC, ZFCANCS, &
+                         IDAY, N, I, J, NBS, &
+                         TRNCH, kount, IC, ICP1, IG, IDISP, IZREF, &
+                         IWF, IPAI, IHGT, IALC, IALS, IALG, &
+                         fracSnowParam, snoAlbedoParam, ZALVSCTM, ZALIRCTM, mossPresentrow, &
+                         ZDSL, LAIPAIRatio, LAISPAISRatio)
+
+              !  CALL  CLASSA(FFC,    FG,     FCS,    FGS,    ALVSCN, ALIRCN, &
+              !      ALVSG,  ALIRG,  ALVSCS, ALIRCS, ALVSSN, ALIRSN, &
+              !      ALVSGC, ALIRGC, ALVSSC, ALIRSC, TRVSCN, TRIRCN, &
+              !      TRVSCS, TRIRCS, FSVF,   FSVFS, &
+              !      RAICAN, RAICNS, SNOCAN, SNOCNS, FRAINC, FSNOWC, &
+              !      FRAICS, FSNOCS, DISP,   DISPS,  ZOMLNC, ZOMLCS, &
+              !      ZOELNC, ZOELCS, ZOMLNG, ZOMLNS, ZOELNG, ZOELNS, &
+              !      CHCAP,  CHCAPS, CMASSC, CMASCS, CWLCAP, CWFCAP, &
+              !      CWLCPS, CWFCPS, RC,     RCS,    RBCOEF, FROOT, &
+              !      ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, TRSNOW, ZSNOW, &
+              !      ZWSNOW, ZALVS,  ZALIR,  ZHTCC,  ZHTCS,  ZHTC, &
+              !      ZWTRC,  ZWTRS,  ZWTRG,  ZCMAI,  ZFSNOW, &
+              !      ZFCANMX,ZZOLN,  ZALVSC, ZALIRC, ZPAIMAX,ZPAIMIN, &
+              !      ZCWGTMX,ZZRTMAX,ZRSMIN, ZQA50,  ZVPDA,  ZVPDB, &
+              !      ZPSIGA, ZPSIGB, PAIDAT, HGTDAT, ACVDAT, ACIDAT, &
+              !      ASVDAT, ASIDAT, AGVDAT, AGIDAT, ZALGWET,ZALGDRY, &
+              !      THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
+              !      ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
+              !      ZZ0ORO, ZZ0VEG, SNOLIM, ZPLMG0, ZPLMS0, &
+              !      FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
+              !      QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
+              !      ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &
+              !      ZHCPS,  ISAND, &
+              !      ZFCANCMX,ICC,ictemmod,ZRMATC,ZZOLNC,ZCMASVEGC, &
+              !      ZAILC,ZPAIC,3, NOL2PFTS,ZSLAIC, &
+              !      ZAILCG,   ZAILCGS,  ZFCANC, ZFCANCS, &
+              !      IDAY,   N,      I,      J, &
+              !      TRNCH,kount,  IC,     ICP1,   IG,     IDISP,  IZREF, &
+              !      IWF,    IPAI,   IHGT,   IALC,   IALS,   IALG, &
+              !      ZALVSCTM, ZALIRCTM)
 
 !
 !
@@ -1670,46 +1723,47 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
          ZTSURF = 0.  ! Mike Lazard had taken the 'TSURF' out of CLASS. 
                       ! K. Winger put the calculation back in 'energyBudgetDriver'
          ! QFLUX added by K. Winger
-!         call energyBudgetDriver(TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & ! Formerly CLASST
-!                                 THICEC, THICEG, HCPC,   HCPG,   TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
-!                                 GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G,   G12CS,  G12GS, &
-!                                 G23C,   G23G,   G23CS,  G23GS,  QFREZC, QFREZG, QMELTC, QMELTG, &
-!                                 EVAPC,  EVAPCG, EVAPG,  EVAPCS, EVPCSG, EVAPGS, TCANO,  TCANS, &
-!                                 RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP,  CHCAPS, TPONDC, TPONDG, &
-!                                 TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-!                                 ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO,  QFLUX, &
-!                                 EVPPOT, CMU,    CTU,    EVAPB,  ZTSRAD, QS,     ZTSURF, &
-!                                 ST,     SU,     SV,     SQ,     srh, &
-!                                 GTBS,   SFCUBS, SFCVBS, USTARBS, &
-!                                 ZFSGV,  ZFSGS,  ZFSGG,  ZFLGV,  ZFLGS,  ZFLGG, &
-!                                 ZHFSC,  ZHFSS,  ZHFSG,  ZHEVC,  ZHEVS,  ZHEVG,  ZHMFC,  ZHMFN, &
-!                                 ZHTCC,  ZHTCS,  ZHTC,   ZQFCF,  ZQFCL,  CDRAG,  WTABLE, ZILMO, &
-!                                 ZFRV,   HBL, ZTAIRCAN, ZHUAIRCAN, ZZUSL, ZZTSL, ZUN,    ZTN, &
-!                                 VPD,    TADP,   RHOAIR, QSWINV, QSWINI, QLWIN,  UA,     VA, &
-!                                 TA,     QA,     TH,     PADRY,  FFC,    FG,     FCS,    FGS,    RBCOEF, &
-!                                 FSVF,   FSVFS,  PS,     vmod,   ALVSCN, ALIRCN, ALVSG,  ALIRG, &
-!                                 ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
-!                                 TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC,     RCS,    ZWTRG,  groundHeatFlux, qlwavg, &
-!                                 FRAINC, FSNOWC, FRAICS, FSNOCS, CMASSC, CMASCS, DISP,   DISPS, &
-!                                 ZOMLNC, ZOELNC, ZOMLNG, ZOELNG, ZOMLCS, ZOELCS, ZOMLNS, ZOELNS, &
-!                                 TS,     THLIQ,  THICE,  ZTPOND, ZZPOND, ZTBASE, ZTCAN,  ZTSNOW, &
-!                                 ZSNOW,  ZRHOSNO,ZWSNOW, ZTHPOR, ZTHLRET,ZTHLMIN,ZTHFC,  ZTHLW, &
-!                                 TRSNOWC,TRSNOWG,ALSNO,  FSSB,   FROOT,  FROOTS, &
-!                                 ZDLAT,  PCPR,   ZHCPS,  ZTCS,   ZTSFS,  DELZ,   ZDELZW, ZZBOTW, &
-!                                 ZFTEMP, ZFVAP,  ZRIB, &
-!                                 ISAND, &
-!                                 ZAILCG,ZAILCGS,ZFCANC,ZFCANCS,ZCO2CONC,ZCO2I1CG, &
-!                                 ZCO2I1CS,ZCO2I2CG,ZCO2I2CS,COSZS,XDIFFUS,ZSLAI, &
-!                                 ICC,    ctem_on, ZRMATCTEM,ZFCANCMX, L2MAX, &
-!                                 NOL2PFTS,  ZCFLUXCG,  ZCFLUXCS, &
-!                                 ZANCSVEG,ZANCGVEG, ZRMLCSVEG,ZRMLCGVEG, &
-!                                 TCSNOW, GSNOW, &
-!                                 ITC,    ITCG,   ITG,    N,      I,  J,  TRNCH,  KOUNT, &
-!                                 IC,IG,  IZREF,  ISLFD,  NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI, &
-!                                 NBS, ISNOALB, DAYL, DAYL_MAX, &
-!                                 ipeatland, ancsmoss, angsmoss, ancmoss, angmoss, &
-!                                 rmlcsmoss, rmlgsmoss, rmlcmoss, rmlgmoss, Cmossmas, dmoss, &
-!                                 iday, pdd)
+    call energyBudgetDriver(TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & ! Formerly CLASST
+                            THICEC, THICEG, HCPC, HCPG, TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
+                            GZEROC, GZEROG, GZROCS, GZROGS, G12C, G12G, G12CS, G12GS, &
+                            G23C, G23G, G23CS, G23GS, QFREZC, QFREZG, QMELTC, QMELTG, &
+                            EVAPC, EVAPCG, EVAPG, EVAPCS, EVPCSG, EVAPGS, TCANO, TCANS, &
+                            RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP, CHCAPS, TPONDC, TPONDG, &
+                            TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
+                            ITERCT, ZCDH, ZCDM, QSENS, TFLUX, QEVAP, EVAPO, &
+                            ZEVPPOT, CTU, EVAPB, ZTSRAD, QS, &
+                            ST, STDA, SU, SV, SQ, srh, &
+                            GTBS, SFCUBS, SFCVBS, USTARBS, USTARBS_GA, &
+                            ZFSGV, ZFSGS, ZFSGG, ZFLGV, ZFLGS, ZFLGG, &
+                            ZHFSC, ZHFSS, ZHFSG, ZHEVC, ZHEVS, ZHEVG, ZHMFC, ZHMFN, &
+                            ZHTCC, ZHTCS, ZHTC, ZQFCF, ZQFCL, CDRAG, WTABLE, ZILMO, &
+                            ZFRV, HBL, ZTAIRCAN, ZHUAIRCAN, ZZUSL, ZZTSL, ZUN, ZTN, &
+                            TADP, RHOAIR, QSWINV, QSWINI, QLWIN, UA, VA, &
+                            TA, QA, PADRY, FFC, FG, FCS, FGS, RBCOEF, &
+                            FSVF, FSVFS, PS, VMOD, ALVSCN, ALIRCN, ALVSG, ALIRG, &
+                            ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
+                            TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC, RCS, ZWTRG, groundHeatFlux, qlwavg, &
+                            FRAINC, FSNOWC, FRAICS, FSNOCS, CMASSC, CMASCS, DISP, DISPS, &
+                            ZOMLNC, ZOELNC, ZOMLNG, ZOELNG, ZOMLCS, ZOELCS, ZOMLNS, ZOELNS, &
+                            TS, THLIQ, THICE, ZTPOND, ZZPOND, ZTBASE, ZTCAN, ZTSNOW, &
+                            ZSNOW, ZRHOSNO, ZWSNOW, ZTHPOR, ZTHLRET, ZTHLMIN, ZTHFC, ZTHLW, &
+                            TRSNOWC, TRSNOWG, ALSNO, FSSB, FROOT, FROOTS, &
+                            ZDLAT, PCPR, ZHCPS, ZTCS, ZTSFS, DELZ, ZDELZW, ZZBOTW, &
+                            ZFTEMP, ZFVAP, ZRIB, ISAND, &
+                            ZAILCG, ZAILCGS, ZFCANC, ZFCANCS, ZCO2CONC, ZCO2I1CG, &
+                            ZCO2I1CS, ZCO2I2CG, ZCO2I2CS, COSZS, XDIFFUS, ZSLAI, ICC, &
+                            ictemmod, ZRMATCTEM, ZFCANCMX, L2MAX, NOL2PFTS, ZCFLUXCG, &
+                            ZCFLUXCS, CFLUX_GA, &
+                            ZANCSVEG, ZANCGVEG, ZRMLCSVEG, ZRMLCGVEG, & !out
+                            TCSNOW, GSNOW, ITC, ITCG, ITG, N, I, J, TRNCH, KOUNT, IC, &
+                            IG, IZREF, ISLFD, NLANDCS, NLANDGS, NLANDC, NLANDG, NLANDI, &
+                            NBS, snoAlbedoParam, DAYL, DAYL_MAX, ZDLON, ZDLAT, &
+                            peatlandTyperow, mossPresentrow, ancsmoss, angsmoss, ancmoss, angmoss, &
+                            rmlcsmoss, rmlgsmoss, rmlcmoss, rmlgmoss, &
+                            Cmossmas, dmoss, IDAY, redcoeff_vcmax, &
+                            redcoeff_vcmaxMoss, Nmossmas, &
+                            ZGLEAFMAS, ZNGLEAFMAS, Ncycle_on, NcycleConnect_on, ZVCMAX0, &
+                            ZPSISAT, ZBI, ZDSL, ZDSLC, ZRB, ZAVESMFUNC)
 !
 !print*,'class_main before CLASST'
 !if (kount==16 .and. trnch==1) then
@@ -1717,42 +1771,42 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !  print *,'class_main: kount,trnch,ZSNOW(16) m:',kount,trnch,ZSNOW(16)
 !  print *,'class_main: kount,trnch, ZRHOSNO(16) kgm-1:',kount,trnch,ZRHOSNO(16)
 !endif
-!print *,'class_main: kount,trnch,TBAR(11,20):',kount,trnch,TS(11,20)
-               CALL   CLASST ( &
-                     TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
-             THICEC, THICEG, HCPC,   HCPG,   TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
-             GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G,   G12CS,  G12GS, &
-             G23C,   G23G,   G23CS,  G23GS,  QFREZC, QFREZG, QMELTC, QMELTG, &
-             EVAPC,  EVAPCG, EVAPG,  EVAPCS, EVPCSG, EVAPGS, TCANO,  TCANS, &
-             RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP,  CHCAPS, TPONDC, TPONDG, &
-             TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-             ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO,  QFLUX, &
-             ZEVPPOT, CTU   , EVAPB,  ZTSRAD, QS,     ZTSURF, &
-             ST,     SU,     SV,     SQ,     srh, &
-             ZFSGV,  ZFSGS,  ZFSGG,  ZFLGV,  ZFLGS,  ZFLGG, &
-             ZHFSC,  ZHFSS,  ZHFSG,  ZHEVC,  ZHEVS,  ZHEVG,  ZHMFC,  ZHMFN, &
-             ZHTCC,  ZHTCS,  ZHTC,   ZQFCF,  ZQFCL,  CDRAG,  WTABLE, ZILMO, &
-             ZFRV,   HBL, ZTAIRCAN, ZHUAIRCAN, ZZUSL, ZZTSL, ZUN,    ZTN, &
-             VPD,    TADP,   RHOAIR, QSWINV, QSWINI, QLWIN,  UA,     VA, &
-             TA,     QA,     PADRY,  FFC,    FG,     FCS,    FGS,    RBCOEF, &
-             FSVF,   FSVFS,  PS,     VMOD,   VDIR,   ALVSCN, ALIRCN, ALVSG,  ALIRG, &
-             ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
-             TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC,     RCS,    ZWTRG,  qlwavg, &
-             FRAINC, FSNOWC, FRAICS, FSNOCS, CMASSC, CMASCS, DISP,   DISPS, &
-             ZOMLNC, ZOELNC, ZOMLNG, ZOELNG, ZOMLCS, ZOELCS, ZOMLNS, ZOELNS, &
-             TS,     THLIQ,  THICE,  ZTPOND, ZZPOND, ZTBASE, ZTCAN,  ZTSNOW, &
-             ZSNOW,  TRSNOW, ZRHOSNO,ZWSNOW, ZTHPOR, ZTHLRET,ZTHLMIN,ZTHFC, &
-             ZDLAT,  PCPR,   ZHCPS,  ZTCS,   ZTSFS,  DELZ,   ZDELZW, ZZBOTW, &
-             ZFTEMP, ZFVAP,  ZRIB, &
-             ISAND,  Isat,   igwscheme, &
-             ZAILCG,ZAILCGS,ZFCANC,ZFCANCS,ZCO2CONC,ZCO2I1CG, &
-             ZCO2I1CS,ZCO2I2CG,ZCO2I2CS,COSZS,XDIFFUS,ZSLAI, &
-             ICC,    ictemmod, ZRMATCTEM,ZFCANCMX, L2MAX, &
-             NOL2PFTS,  ZCFLUXCG,  ZCFLUXCS, &
-             ZANCSVEG,ZANCGVEG, ZRMLCSVEG,ZRMLCGVEG, &
-             bterm,zpsisat,zgrksat, &
-             ITC,    ITCG,   ITG,    N,      I,  J,  TRNCH,  KOUNT, &
-             IC,IG,  IZREF,  ISLFD,  NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI)
+! !print *,'class_main: kount,trnch,TBAR(11,20):',kount,trnch,TS(11,20)
+!                CALL   CLASST ( &
+!                      TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
+!              THICEC, THICEG, HCPC,   HCPG,   TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
+!              GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G,   G12CS,  G12GS, &
+!              G23C,   G23G,   G23CS,  G23GS,  QFREZC, QFREZG, QMELTC, QMELTG, &
+!              EVAPC,  EVAPCG, EVAPG,  EVAPCS, EVPCSG, EVAPGS, TCANO,  TCANS, &
+!              RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP,  CHCAPS, TPONDC, TPONDG, &
+!              TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
+!              ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO,  QFLUX, &
+!              ZEVPPOT, CTU   , EVAPB,  ZTSRAD, QS,     ZTSURF, &
+!              ST,     SU,     SV,     SQ,     srh, &
+!              ZFSGV,  ZFSGS,  ZFSGG,  ZFLGV,  ZFLGS,  ZFLGG, &
+!              ZHFSC,  ZHFSS,  ZHFSG,  ZHEVC,  ZHEVS,  ZHEVG,  ZHMFC,  ZHMFN, &
+!              ZHTCC,  ZHTCS,  ZHTC,   ZQFCF,  ZQFCL,  CDRAG,  WTABLE, ZILMO, &
+!              ZFRV,   HBL, ZTAIRCAN, ZHUAIRCAN, ZZUSL, ZZTSL, ZUN,    ZTN, &
+!              VPD,    TADP,   RHOAIR, QSWINV, QSWINI, QLWIN,  UA,     VA, &
+!              TA,     QA,     PADRY,  FFC,    FG,     FCS,    FGS,    RBCOEF, &
+!              FSVF,   FSVFS,  PS,     VMOD,   VDIR,   ALVSCN, ALIRCN, ALVSG,  ALIRG, &
+!              ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
+!              TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC,     RCS,    ZWTRG,  qlwavg, &
+!              FRAINC, FSNOWC, FRAICS, FSNOCS, CMASSC, CMASCS, DISP,   DISPS, &
+!              ZOMLNC, ZOELNC, ZOMLNG, ZOELNG, ZOMLCS, ZOELCS, ZOMLNS, ZOELNS, &
+!              TS,     THLIQ,  THICE,  ZTPOND, ZZPOND, ZTBASE, ZTCAN,  ZTSNOW, &
+!              ZSNOW,  TRSNOW, ZRHOSNO,ZWSNOW, ZTHPOR, ZTHLRET,ZTHLMIN,ZTHFC, &
+!              ZDLAT,  PCPR,   ZHCPS,  ZTCS,   ZTSFS,  DELZ,   ZDELZW, ZZBOTW, &
+!              ZFTEMP, ZFVAP,  ZRIB, &
+!              ISAND,  Isat,   igwscheme, &
+!              ZAILCG,ZAILCGS,ZFCANC,ZFCANCS,ZCO2CONC,ZCO2I1CG, &
+!              ZCO2I1CS,ZCO2I2CG,ZCO2I2CS,COSZS,XDIFFUS,ZSLAI, &
+!              ICC,    ictemmod, ZRMATCTEM,ZFCANCMX, L2MAX, &
+!              NOL2PFTS,  ZCFLUXCG,  ZCFLUXCS, &
+!              ZANCSVEG,ZANCGVEG, ZRMLCSVEG,ZRMLCGVEG, &
+!              bterm,zpsisat,zgrksat, &
+!              ITC,    ITCG,   ITG,    N,      I,  J,  TRNCH,  KOUNT, &
+!              IC,IG,  IZREF,  ISLFD,  NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI)
 
 
 ! CCCCCCCCCCCCCCCContinue here
@@ -1763,70 +1817,72 @@ print*,'class_main ZSOCI           :',minval(ZSOCI),maxval(ZSOCI),sum(ZSOCI)/(N)
 !print *,'class_main QMELTG(1:N):',QMELTG(1:N)
 !print *,'class_main TBARGS(1:N,1):',TBARGS(1:N,1)
 
-!         call waterBudgetDriver(THLIQ,  THICE, TS, ZTCAN, ZRCAN, ZSCAN, & ! Formerly CLASSW
-!                                RUNOFF, ZTRUNOFF,XSNO,  ZTSNOW, ZRHOSNO,ZALBSNO, &
-!                                ZWSNOW, ZZPOND, ZTPOND, ZGROWTH,ZTBASE, GFLUX, &
-!                                ZPCFC,  ZPCLC,  ZPCPN,  ZPCPG,  ZQFCF,  ZQFCL, &
-!                                ZQFN,   ZQFG,   ZQFC,   ZHMFC,  ZHMFG,  ZHMFN, &
-!                                ZHTCC,  ZHTCS,  ZHTC,   ZROFC,  ZROFN,  ZROVG, &
-!                                ZWTRS,  ZWTRG,  ZOVRFLW,ZSUBFLW,ZBASFLW, &
-!                                ZTOVRFL,ZTSUBFL,ZTBASFL,EVAPO,  QFLUX,  RHOAIR, &
-!                                TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
-!                                THICEC, THICEG, HCPC,   HCPG,   RPCP,   TRPCP, &
-!                                SPCP,   TSPCP,  PCPR,   TA,     RHOSNI, ZGGEO, &
-!                                FFC,    FG,     FCS,    FGS,    TPONDC, TPONDG, &
-!                                TPNDCS, TPNDGS, EVAPC,  EVAPCG, EVAPG,  EVAPCS, &
-!                                EVPCSG, EVAPGS, QFREZC, QFREZG, QMELTC, QMELTG, &
-!                                RAICAN, SNOCAN, RAICNS, SNOCNS, FSVF,   FSVFS, &
-!                                CWLCAP, CWFCAP, CWLCPS, CWFCPS, TCANO, &
-!                                TCANS,  CHCAP,  CHCAPS, CMASSC, CMASCS, ZSNOW, &
-!                                GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G, &
-!                                G12CS,  G12GS,  G23C,   G23G,   G23CS,  G23GS, &
-!                                TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-!                                ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZTSFS, &
-!                                TCTOPC, TCBOTC, TCTOPG, TCBOTG, FROOT, FROOTS, &
-!                                ZTHPOR, ZTHLRET,ZTHLMIN,ZBI,    ZPSISAT,ZGRKSAT, &
-!                                ZTHLRAT,ZTHFC,  ZXDRAIN,ZHCPS,  DELZ, &
-!                                ZDELZW, ZZBOTW, ZXSLOPE,ZGRKFAC,ZWFSURF,ZWFCINT, &
-!                                ISAND,  igdr, &
-!                                IWF,    N,      I,      J,      KOUNT, &
-!                                TRNCH,  IC,     IG,     IG+1,   IG+2, &
-!                                NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI)
+    call waterBudgetDriver(THLIQ, THICE, TS, ZTCAN, ZRCAN, ZSCAN, & ! Formerly CLASSW
+                           RUNOFF, ZTRUNOFF, XSNO, ZTSNOW, ZRHOSNO, ZALBSNO, &
+                           ZWSNOW, ZZPOND, ZTPOND, ZGROWTH, ZTBASE, GFLUX, &
+                           ZPCFC, ZPCLC, ZPCPN, ZPCPG, ZQFCF, ZQFCL, &
+                           ZQFN, ZQFG, ZQFC, ZHMFC, ZHMFG, ZHMFN, &
+                           ZHTCC, ZHTCS, ZHTC, ZROFC, ZROFN, ZROVG, &
+                           ZWTRS, ZWTRG, ZOVRFLW, ZSUBFLW, ZBASFLW, &
+                           ZTOVRFL, ZTSUBFL, ZTBASFL, EVAPO, QFLUX, RHOAIR, &
+                           TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, &
+                           THICEC, THICEG, HCPC, HCPG, RPCP, TRPCP, &
+                           SPCP, TSPCP, PCPR, TA, RHOSNI, ZGGEO, &
+                           FFC, FG, FCS, FGS, TPONDC, TPONDG, &
+                           TPNDCS, TPNDGS, EVAPC, EVAPCG, EVAPG, EVAPCS, &
+                           EVPCSG, EVAPGS, QFREZC, QFREZG, QMELTC, QMELTG, &
+                           RAICAN, SNOCAN, RAICNS, SNOCNS, FSVF, FSVFS, &
+                           CWLCAP, CWFCAP, CWLCPS, CWFCPS, TCANO, &
+                           TCANS, CHCAP, CHCAPS, CMASSC, CMASCS, ZSNOW, &
+                           GZEROC, GZEROG, GZROCS, GZROGS, G12C, G12G, &
+                           G12CS, G12GS, G23C, G23G, G23CS, G23GS, &
+                           TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
+                           ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZTSFS, &
+                           TCTOPC, TCBOTC, TCTOPG, TCBOTG, FROOT, FROOTS, &
+                           ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, &
+                           ZTHLRAT, ZTHFC, ZXDRAIN, ZHCPS, DELZ, &
+                           ZDELZW, ZZBOTW, ISAND, igdr, ZDLON, ZDLAT, &
+                           IWF, N, I, J, KOUNT, &
+                           TRNCH, IG, IGND + 1, IGND + 2, &
+                           NLANDCS, NLANDGS, NLANDC, NLANDG, NLANDI, &
+                           ZRB, RC, RCS, FRAINC, FSNOWC, FRAICS, FSNOCS, &  
+                           LAIPAIRatio, LAISPAISRatio,ZFSNOW, maxSNO, &
+                           SNOLIM, stddevTopography, fracSnowParam, TCSNOW) 
 
 !print*,'class_main before CLASSW'
-               CALL CLASSW  ( &
-                        THLIQ,  THICE,  TS,     ZTCAN,  ZRCAN,  ZSCAN, &
-                        RUNOFF,ZTRUNOFF,XSNO,  ZTSNOW, ZRHOSNO,ZALBSNO, &
-                        ZWSNOW, ZZPOND, ZTPOND, ZGROWTH,ZTBASE, GFLUX, &
-                        ZPCFC,  ZPCLC,  ZPCPN,  ZPCPG,  ZQFCF,  ZQFCL, &
-                        ZQFN,   ZQFG,   ZQFC,   ZHMFC,  ZHMFG,  ZHMFN, &
-                        ZHTCC,  ZHTCS,  ZHTC,   ZROFC,  ZROFN,  ZROVG, &
-                        ZWTRS,  ZWTRG,  ZOVRFLW,ZSUBFLW,ZBASFLW, &
-                        ZTOVRFL,ZTSUBFL,ZTBASFL,EVAPO, &
-                        TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
-                        THICEC, THICEG, HCPC,   HCPG,   RPCP,   TRPCP, &
-                        SPCP,   TSPCP,  PCPR,   TA,     RHOSNI, ZGGEO, &
-                        FFC,    FG,     FCS,    FGS,    TPONDC, TPONDG, &
-                        TPNDCS, TPNDGS, EVAPC,  EVAPCG, EVAPG,  EVAPCS, &
-                        EVPCSG, EVAPGS, QFREZC, QFREZG, QMELTC, QMELTG, &
-                        RAICAN, SNOCAN, RAICNS, SNOCNS, FROOT,  FSVF, &
-                        FSVFS,  CWLCAP, CWFCAP, CWLCPS, CWFCPS, TCANO, &
-                        TCANS,  CHCAP,  CHCAPS, CMASSC, CMASCS, ZSNOW, &
-                        GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G, &
-                        G12CS,  G12GS,  G23C,   G23G,   G23CS,  G23GS, &
-                        TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-                        ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZTSFS, &
-                        TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
-                        ZTHPOR, ZTHLRET,ZTHLMIN,ZBI,    ZPSISAT,ZGRKSAT, &
-                        ZTHLRAT,ZTHFC,  ZXDRAIN,ZHCPS,  DELZ, &
-                        ZDELZW, ZZBOTW, ZXSLOPE,ZGRKFAC,ZWFSURF,ZWFCINT, &
-                        ISAND,  igdr, &
-                        IWF,    N,      I,      J,      KOUNT, &
-                        TRNCH,  IC,     IG,     IG+1,   IG+2, &
-                        NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI, ZWT, &
-                        QDIST, QINT, QINC,QING,QINGS,QINCS,QDISC,Isat, &
-                        ZWTNEW,DMLIQT,Ibed,Isats,XWT,ZEXCW,ZSLP,ZARE,ZLEG, &
-                        ZANIS, igwscheme)
+              !  CALL CLASSW  ( &
+              !           THLIQ,  THICE,  TS,     ZTCAN,  ZRCAN,  ZSCAN, &
+              !           RUNOFF,ZTRUNOFF,XSNO,  ZTSNOW, ZRHOSNO,ZALBSNO, &
+              !           ZWSNOW, ZZPOND, ZTPOND, ZGROWTH,ZTBASE, GFLUX, &
+              !           ZPCFC,  ZPCLC,  ZPCPN,  ZPCPG,  ZQFCF,  ZQFCL, &
+              !           ZQFN,   ZQFG,   ZQFC,   ZHMFC,  ZHMFG,  ZHMFN, &
+              !           ZHTCC,  ZHTCS,  ZHTC,   ZROFC,  ZROFN,  ZROVG, &
+              !           ZWTRS,  ZWTRG,  ZOVRFLW,ZSUBFLW,ZBASFLW, &
+              !           ZTOVRFL,ZTSUBFL,ZTBASFL,EVAPO, &
+              !           TBARC,  TBARG,  TBARCS, TBARGS, THLIQC, THLIQG, &
+              !           THICEC, THICEG, HCPC,   HCPG,   RPCP,   TRPCP, &
+              !           SPCP,   TSPCP,  PCPR,   TA,     RHOSNI, ZGGEO, &
+              !           FFC,    FG,     FCS,    FGS,    TPONDC, TPONDG, &
+              !           TPNDCS, TPNDGS, EVAPC,  EVAPCG, EVAPG,  EVAPCS, &
+              !           EVPCSG, EVAPGS, QFREZC, QFREZG, QMELTC, QMELTG, &
+              !           RAICAN, SNOCAN, RAICNS, SNOCNS, FROOT,  FSVF, &
+              !           FSVFS,  CWLCAP, CWFCAP, CWLCPS, CWFCPS, TCANO, &
+              !           TCANS,  CHCAP,  CHCAPS, CMASSC, CMASCS, ZSNOW, &
+              !           GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G, &
+              !           G12CS,  G12GS,  G23C,   G23G,   G23CS,  G23GS, &
+              !           TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
+              !           ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, ZTSFS, &
+              !           TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
+              !           ZTHPOR, ZTHLRET,ZTHLMIN,ZBI,    ZPSISAT,ZGRKSAT, &
+              !           ZTHLRAT,ZTHFC,  ZXDRAIN,ZHCPS,  DELZ, &
+              !           ZDELZW, ZZBOTW, ZXSLOPE,ZGRKFAC,ZWFSURF,ZWFCINT, &
+              !           ISAND,  igdr, &
+              !           IWF,    N,      I,      J,      KOUNT, &
+              !           TRNCH,  IC,     IG,     IG+1,   IG+2, &
+              !           NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI, ZWT, &
+              !           QDIST, QINT, QINC,QING,QINGS,QINCS,QDISC,Isat, &
+              !           ZWTNEW,DMLIQT,Ibed,Isats,XWT,ZEXCW,ZSLP,ZARE,ZLEG, &
+              !           ZANIS, igwscheme)
 
 
       ! ToDo: Add call to energyWaterBalanceCheck (1,...)

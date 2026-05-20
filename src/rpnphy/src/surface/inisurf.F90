@@ -173,6 +173,18 @@ subroutine inisurf4(kount, ni, nk, trnch)
       MKPTR2D(zmcmai,cmai)
    endif
 
+      ! for CLASSIC
+   if (schmsol == 'CLASSIC') then
+      MKPTR1D(zsdepth,sdepth)
+      MKPTR1D(zxdrain,xdrain)
+      MKPTR1D(zz0oro,z0oro)
+
+      MKPTR2D(zwsoil,wsoil)
+      MKPTR2D(zrootdp,rootdp)
+      MKPTR2D(zorgm,orgm)
+      MKPTR2D(zmexcw,excw)
+      MKPTR2D(zmcmai,cmai)
+   endif
 
    ! Several treatments on geophysical fields valid for isba
    ! the water temperature (tm) is decreased for points where the
@@ -913,6 +925,211 @@ subroutine inisurf4(kount, ni, nk, trnch)
       call coherence3(ni, trnch)
 
    endif IF_CLASS
+
+   !========================================================================
+   !                       for CLASSIC only
+   !========================================================================
+!print *,'inisurf: trnch =',trnch
+!print *,'inisurf: zsand(1,:):',zsand(1,:)
+!print *,'inisurf: zsand(:, 1):',zsand(:, 1)
+!print *,'inisurf: zsand(:,16):',zsand(:,16)
+!print *,'inisurf: zclay(:, 1):',zclay(:, 1)
+!print *,'inisurf: zclay(:,16):',zclay(:,16)
+   IF_CLASSIC: if (schmsol == 'CLASSIC') then
+
+      !  Initialize the parameters that depend on vegetation
+      if (any('vegf' == phyinread_list_s(1:phyinread_n)) .or. &
+           (kntveg > 0 .and. mod(kount,kntveg) == 0)) then
+         call inicover2(kount, ni, trnch)
+      endif
+
+      ! Make sure number of soil levels read is correct
+      ! -----------------------------------------------
+
+      if (any('tsoil' == phyinread_list_s(1:phyinread_n)) ) then
+
+         ! Find sand & clay id
+         tsoil_id = 0
+         wsoil_id = 0
+         isoil_id = 0
+         do k=1,phyinread_n
+            if (phyinread_list_s(k) == 'tsoil') tsoil_id = k
+            if (phyinread_list_s(k) == 'wsoil') wsoil_id = k
+            if (phyinread_list_s(k) == 'isoil') isoil_id = k
+            if (tsoil_id /= 0 .and. wsoil_id /= 0 .and. isoil_id /= 0) exit  ! All IDs found -> exit loop
+         end do
+         if (tsoil_id == 0 .or. wsoil_id == 0 .or. isoil_id == 0) then
+            call msg(MSG_ERROR,'(inisurf) I0, I1, and/or I2 not read')
+            return
+         endif
+
+         ! Make sure number of soil levels read is correct
+         if (phyinread_list_nk(tsoil_id) /= class_ig .or. &
+             phyinread_list_nk(wsoil_id) /= class_ig .or. &
+             phyinread_list_nk(isoil_id) /= class_ig ) then
+            call msg(MSG_ERROR,'(inisurf) I0, I1, and/or I2: wrong number of levels read')
+            return
+         endif
+      endif
+
+      ! Copy read sand & clay into all levels
+      ! -------------------------------------
+      if (any('sand' == phyinread_list_s(1:phyinread_n)) .and. &
+          any('clay' == phyinread_list_s(1:phyinread_n)) ) then
+
+         ! Find sand & clay id
+         sand_id = 0
+         clay_id = 0
+         do k=1,phyinread_n
+            if (phyinread_list_s(k) == 'sand') sand_id = k
+            if (phyinread_list_s(k) == 'clay') clay_id = k
+            if (sand_id /= 0 .and. clay_id /= 0) exit
+         end do
+!print *,'inisurf: sand_id,clay_id:',sand_id,clay_id
+!print *,'inisurf: sand_nk,clay_nk:',phyinread_list_nk(sand_id),phyinread_list_nk(clay_id)
+         if (sand_id == 0 .or. clay_id == 0) then
+            call msg(MSG_ERROR,'(inisurf) sand and/or clay not read')
+            return
+         endif
+
+         ! Copy read lowest read sand level into all levels below
+         ! If number of levels read is 1, field is in lowest level, class_ig ...
+         if (phyinread_list_nk(sand_id) == 1) then
+            do i=1,ni
+               zsand(i,1                           :class_ig-1) = zsand(i,class_ig)
+            end do
+         ! ... otherwise the field is in the top n levels
+         else
+            do i=1,ni
+               zsand(i,phyinread_list_nk(sand_id)+1:class_ig  ) = zsand(i,phyinread_list_nk(sand_id))
+            end do
+         endif
+
+         ! Copy read lowest read clay level into all levels below
+         ! If number of levels read is 1, field is in lowest level, class_ig ...
+         if (phyinread_list_nk(clay_id) == 1) then
+            do i=1,ni
+               zclay(i,1                           :class_ig-1) = zclay(i,class_ig)
+            end do
+         ! ... otherwise the field is in the top n levels
+         else
+            do i=1,ni
+               zclay(i,phyinread_list_nk(clay_id)+1:class_ig  ) = zclay(i,phyinread_list_nk(clay_id))
+            end do
+         endif
+!print *,'inisurf: zsand(:, 1):',zsand(:, 1)
+!print *,'inisurf: zsand(:, 2):',zsand(:, 2)
+!print *,'inisurf: zsand(:, 3):',zsand(:, 3)
+!print *,'inisurf: zsand(:, 4):',zsand(:, 4)
+!print *,'inisurf: zsand(:, 5):',zsand(:, 5)
+!print *,'inisurf: zsand(:, 6):',zsand(:, 6)
+!print *,'inisurf: zsand(:, 7):',zsand(:, 7)
+!print *,'inisurf: zsand(:,15):',zsand(:,15)
+!print *,'inisurf: zsand(:,16):',zsand(:,16)
+!print *,'inisurf: zclay(:, 1):',zclay(:, 1)
+!print *,'inisurf: zclay(:, 2):',zclay(:, 2)
+!print *,'inisurf: zclay(:, 3):',zclay(:, 3)
+!print *,'inisurf: zclay(:,15):',zclay(:,15)
+!print *,'inisurf: zclay(:,16):',zclay(:,16)
+
+         ! Initialize organic matter to zero
+         zorgm  = 0.
+         zmcmai = 0.
+         zmexcw = 0.
+
+
+         ! Adjust sand & clay values
+         do k=1,class_ig
+            do i=1,ni
+
+               if (zmg(i).lt.critmask) then
+                  ! OVER WATER...
+                  zsand  (i,k)    = 0.0
+                  zclay  (i,k)    = 0.0
+               else
+                  ! OVER LAND
+                  if (zsand(i,k)+zclay(i,k).lt.critexture) then
+                     !                If no sand and clay component
+                     !                attribute to these points characteristics
+                     !                of typical loamy soils
+                     zsand(i,k) = 35.
+                     zclay(i,k) = 35.
+                  else
+                     !                 Minimum of 1% of sand and clay
+                     zsand(i,k) =  max( zsand(i,k) , 1.0)
+                     zclay(i,k) =  max( zclay(i,k) , 1.0)
+
+                     ! If the sum of sand + clay is greater than 100% ...
+                     if ( zsand(i,k)+zclay(i,k).gt.100 ) then
+                        ! ... reduce sand & clay  percentage proportionally
+                        tempsum= zsand(i,k) + zclay(i,k)
+                        zsand(i,k) = zsand(i,k)/tempsum * 100.
+                        zclay(i,k) = zclay(i,k)/tempsum * 100.
+                     endif
+                  endif
+               endif
+
+            enddo
+         enddo
+
+      endif ! if sand/clay got read
+
+      do i=1,ni
+
+         ! orographic roughness length
+         if (any('z0oro' == phyinread_list_s(1:phyinread_n))) then
+            ! Re-initialize Z0M and Z0M to Z0oro
+            if (any('z0en' == phyinread_list_s(1:phyinread_n))) then
+               zz0 (i,indx_soil   ) = max(zz0oro(i),z0min)
+               zz0t(i,indx_soil   ) = max(zz0en(i),z0min)
+            endif
+
+            zz0oro (i) = max(zz0oro(i),z0min)
+         else
+            zz0oro (i) = max(zz0en(i),z0min)
+         endif
+!zz0oro (i) = z0min
+
+         ! Set minimum soil moisture to 0.04
+         do k=1,class_ig
+            zwsoil(i,k)= max(0.04,zwsoil(i,k))
+         enddo
+
+         ! If soil is frozen set liquid water content to 0.04
+         do k=1,class_ig
+            if (ztsoil(i,k).lt.273.15) zwsoil(i,k)=0.04
+         enddo
+
+         ! Set drainage index for water flow at bottom of soil profile
+         zxdrain(i) = 1.0 - zvegf(i,23)
+
+         ! Keep depth to bedrock between 0.38 and 3.0 m (from Vincent Fortin)
+         !zsdepth(i) = max(0.38, zsdepth(i))
+         !zsdepth(i) = min(3.00, zsdepth(i))
+         ! Set minimum depth to bedrock to 0.1 m
+         ! (Since neither Diana nor Joe Melton think Vincen't limits are necessary changed to (KW))
+         zsdepth(i) = max(0.10, zsdepth(i))
+
+
+         ! Make sure root depth does not go beyond depth to bedrock
+         do k=1,class_ic
+           zrootdp(i,k) = min(zrootdp(i,k), zsdepth(i))
+         enddo
+
+      enddo
+
+      ! Read CLASS namelist 'CLASS_input_table'
+      if (.not. CLASS_nml_read) then
+         if (trnch==1) then
+            call iniclass
+            CLASS_nml_read = .true.
+         endif
+      endif
+
+      ! Make sure the entry fields are coherent ...
+      call coherence3(ni, trnch)
+
+   endif IF_CLASSIC
 
    return
 end subroutine inisurf4

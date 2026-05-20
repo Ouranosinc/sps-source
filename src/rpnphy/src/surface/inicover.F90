@@ -18,15 +18,18 @@ subroutine inicover2(kount, ni, trnch)
    use mu_jdate_mod, only: jdate_day_of_year
    use sfc_options
    use sfcbus_mod
+   use class_configs
    implicit none
 !!!#include <arch_specific.hf>
 #include <rmnlib_basics.hf>
+   include "sfcinput.cdk"
 
    integer ni, kount, trnch
 
    !@Author Bernard Bilodeau and Stephane Belair (May 2000)
    !@Revision
    ! 001      see version 5.5.0 for previous history
+   ! 002      K. Winger (UQAM/ESCER) Jun 2020 - Section for CLASS added
    !@Object Initialize vegetation fields for the surface schemes
    !@Arguments
    !       - Input -
@@ -75,8 +78,16 @@ subroutine inicover2(kount, ni, trnch)
    real aldat(nclass), d2dat(nclass), rsminxdat(nclass)
    real laidat(nclass), vegdat(nclass)
    real cvdat(nclass), rgldat(nclass), gammadat(nclass)
- 
-   data aldat/ &
+   real alvsdat(nclass), alnidat(nclass),rsmindat(nclass)
+   real qa50dat(nclass),vpdadat(nclass),vpdbdat(nclass)
+   real psgadat(nclass),psgbdat(nclass),z0mdat(nclass),ln_z0mdat(nclass)
+   real laimxdat(nclass),laimndat(nclass),vgmasdat(nclass)
+   real rootdat(nclass),fveg(4)
+   integer vgclass(nclass),vg000(nclass)
+
+   integer :: nmos
+    
+    data aldat/ &
         0.13   , 0.70   , 0.13   , 0.14   , 0.12   , &
         0.14   , 0.18   , 0.13   , 0.17   , 0.14   , &
         0.18   , 0.19   , 0.20   , 0.19   , 0.20   , &
@@ -134,6 +145,169 @@ subroutine inicover2(kount, ni, trnch)
         0.    , 0.     , 0.     , 0.     , 0.     , &
         0.    , 0.     , 0.     , 0.     , 0.     , &
         0.    /
+
+   data rsmindat/ &
+        0.0    , 0.0    , 0.0    , 250.   , 250.   , &
+        263.   , 130.   , 130.   , 122.   , 323.   , &
+        855.   , 500.   , 150.   , 150.   , 100.   , &
+        120.   , 278.   , 90.    , 112.   , 86.    , &
+        0.0    , 200.   , 200.   , 0.0    , 165.   , &
+        855.   /
+
+   ! Parameter in stomatal conductance
+   data qa50dat/ &
+        30.    , 30.    , 30.    , 30.    , 30.    , &
+        30.    , 50.    , 30.    , 30.    , 30.    , &
+        30.    , 30.    , 35.    , 30.    , 30.    , &
+        30.    , 30.    , 30.    , 30.    , 30.    , &
+        30.    , 50.    , 30.    , 30.    , 30.    , &
+        30.    /
+
+   ! Parameter vpda in stomatal resistance
+   data vpdadat/ &
+        0.0    , 0.0    , 0.0    , 0.57   , 0.5    , &
+        0.5    , 0.60   , 0.45   , 0.5    , 0.5    , &
+        0.5    , 0.5    , 0.5    , 0.5    , 0.5    , &
+        0.5    , 0.5    , 0.5    , 0.5    , 0.5    , &
+        0.5    , 0.62   , 0.5    , 0.5    , 0.40   , &
+        0.5    /
+
+   ! Parameter vpdb in stomatal resistance
+   data vpdbdat/ &
+        1.0    , 1.0    , 1.0    , 1.0    , 1.0    , &
+        1.0    , 0.5    , 0.0    , 1.0    , 1.0    , &
+        1.0    , 1.0    , 1.0    , 1.0    , 1.0    , &
+        1.0    , 1.0    , 1.0    , 1.0    , 1.0    , &
+        1.0    , 0.4    , 1.0    , 1.0    , 0.6    , &
+        1.0    /
+
+   ! Parameter psiga in stomatal resistance
+   data psgadat/ &
+        100    , 100    , 100    , 100    , 100    , &
+        100    , 100    , 100    , 100    , 100    , &
+        100    , 100    , 100    , 100    , 100    , &
+        100    , 100    , 100    , 100    , 100    , &
+        100    , 100    , 100    , 100    , 100    , &
+        100    /
+
+   ! Parameter psigb in stomatal resistance
+   data psgbdat/ &
+        5.    , 5.     , 5.     , 5.     , 5.     , &
+        5.    , 5.     , 5.     , 5.     , 5.     , &
+        5.    , 5.     , 5.     , 5.     , 5.     , &
+        5.    , 5.     , 5.     , 5.     , 5.     , &
+        5.    , 5.     , 5.     , 5.     , 5.     , &
+        5.    /
+
+   data aldat/ &
+        0.13   , 0.70   , 0.13   , 0.14   , 0.12   , &
+        0.14   , 0.18   , 0.13   , 0.17   , 0.14   , &
+        0.18   , 0.19   , 0.20   , 0.19   , 0.20   , &
+        0.21   , 0.18   , 0.18   , 0.25   , 0.18   , &
+        0.12   , 0.17   , 0.12   , 0.30   , 0.15   , &
+        0.15   /
+
+   ! Visible canopy albedo
+   data alvsdat/ &
+        0.0    , 0.0    , 0.0    , 0.03   , 0.03   , &
+        0.03   , 0.05   , 0.03   , 0.05   , 0.03   , &
+        0.05   , 0.06   , 0.06   , 0.05   , 0.06   , &
+        0.06   , 0.05   , 0.05   , 0.07   , 0.06   , &
+        0.09   , 0.05   , 0.03   , 0.30   , 0.04   , &
+        0.04   /
+
+   ! Near infra red canopy albedo
+   data alnidat/ &
+        0.0    , 0.0    , 0.0    , 0.19   , 0.23   , &
+        0.19   , 0.29   , 0.23   , 0.29   , 0.19   , &
+        0.29   , 0.32   , 0.34   , 0.31   , 0.34   , &
+        0.36   , 0.31   , 0.31   , 0.43   , 0.36   , &
+        0.15   , 0.29   , 0.25   , 0.30   , 0.26   , &
+        0.26   /
+
+   ! Roughness length
+   ! Set roughness length of desert from 0.05 to 0.012 m (KW)
+   !   NOAA: 0.0112 m; ECMWF(?): 0.013
+   data z0mdat / &
+        0.001  , 0.001  , 0.001  , 1.5    , 3.5    , &
+        1.0    , 2.0    , 3.0    , 0.8    , 0.05   , &
+        0.15   , 0.15   , 0.02   , 0.08   , 0.08   , &
+        0.08   , 0.35   , 0.25   , 0.10   , 0.08   , &
+        1.35   , 0.01   , 0.05   , 0.01   , 1.5    , &
+        0.05   /
+
+   ! Log of roughness length for each vegetation class
+   DATA ln_z0mdat / &
+        -6.91  , -6.91  , -6.91  ,  0.405 ,  1.25  , &
+         0.0   ,  0.693 ,  1.10  , -0.223 , -3.0   , &
+        -1.9   , -1.9   , -3.91  , -2.53  , -2.53  , &
+        -2.53  , -1.05  , -1.39  , -2.30  , -2.53  , &
+         0.3   , -4.61  , -3.0   , -4.40  ,  0.405 , &
+        -3.0   /
+
+   ! Maximum leaf area index (LAI)
+   data laimxdat/ &
+        0.0    , 0.0    , 0.0    , 2.0    , 10.    , &
+        2.0    , 6.0    , 10.    , 4.0    , 2.0    , &
+        4.0    , 3.0    , 3.0    , 4.0    , 4.0    , &
+        6.5    , 5.0    , 4.0    , 5.0    , 4.0    , &
+        0.0    , 1.5    , 1.5    , 0.0    , 5.5    , &
+        3.0    /
+
+   ! Minimum leaf area index (LAI)
+   data laimndat/ &
+        0.0    , 0.0    , 0.0    , 1.6    , 10.    , &
+        0.5    , 0.5    , 10.    , 4.0    , 2.0    , &
+        0.5    , 3.0    , 3.0    , 4.0    , 0.0    , &
+        0.0    , 0.0    , 0.0    , 0.0    , 0.0    , &
+        0.0    , 1.5    , 1.5    , 0.0    , 1.0    , &
+        3.0    /
+
+   ! Standing mass of canopy
+   data vgmasdat/ &
+        0.0    , 0.0    , 0.0    , 25.    , 50.    , &
+        15.    , 20.    , 40.    , 15.    , 2.     , &
+        8.     , 8.     , 1.5    , 3.     , 2.     , &
+        2.     , 5.     , 5.     , 2.     , 2.     , &
+        0.     , 0.2    , 1.0    , 0.     , 20.    , &
+        8.     /
+
+   ! Rooting soil depth - depth of soil water layer in CLASS
+   data rootdat/ &
+        0.0    , 0.0    , 0.0    , 1.0    , 5.0    , &
+        1.0    , 2.0    , 5.0    , 5.0    , 0.2    , &
+        1.0    , 5.0    , 1.2    , 1.2    , 1.2    , &
+        1.2    , 1.0    , 1.5    , 2.0    , 5.0    , &
+        0.     , 0.1    , 5.0    , 0.     , 1.2    , &
+        1.2    /
+
+   ! CLASS vegetation category
+   !   1: needle-leaf; 2: broadleaf; 3: crops; 4: grass; 5: urban; 6: bare soil
+! KW:
+! Move "mixed wood forests (25)" from "broadleaf (2)" to "needle- and broadleaf (12)"
+! Move "deciduous shrubs (11)" from "grass (4) to "broadleaf (2)"
+! Move "desert (24)" from "urbain (5)" to "bare soil (6)"
+! Move "desert (24)" back to "urbain (5)" because "bare soil (6)" does not exist!!!
+   data vgclass/ &
+        0      , 0      , 0      , 1      , 2      , &
+        1      , 2      , 2      , 2      , 4      , &
+        2      , 4      , 4      , 4      , 3      , &
+        3      , 3      , 3      , 3      , 3      , &
+        5      , 4      , 4      , 5      , 12     , &
+        4      /
+
+   data vg000 / &
+        1      , 1      , 1      , 1      , 1      , &
+        1      , 1      , 1      , 1      , 1      , &
+        1      , 1      , 1      , 1      , 1      , &
+        1      , 1      , 1      , 1      , 1      , &
+        1      , 1      , 1      , 1      , 1      , &
+        1      /
+
+! All values set to 1.00 so that no bare soil is added artificially (KW)
+! Although, this parameter does not seem to get used anymore (KW)
+!   data fveg/ 0.90,  0.90,   0.70,  0.60 /
+   data fveg/ 1.00,  1.00,   1.00,  1.00 /
 
    !********************************************************************
    !                tables describing the annual evolution of veg fields
@@ -204,12 +378,15 @@ subroutine inicover2(kount, ni, trnch)
    integer(INT64), parameter :: MU_JDATE_HALFDAY = 43200 !#TODO: use value from my_jdate_mod
    real, external :: interpveg
 
-   integer :: i
+   integer :: i,j,k
    real :: julien, juliens
+   real :: fcansum
 
    real, dimension(nclass) :: aldatd, cvdatd, d2datd, gammadatd, &
         laidatdn, laidatds, rgldatd, rsmindatd, &
         vegdatdn, vegdatds
+   real, pointer, dimension (:,:) :: zfcanmx, zfcancmx, zvegf
+
 
    IF_ISBA: if (schmsol == 'ISBA') then
 
@@ -299,6 +476,171 @@ subroutine inicover2(kount, ni, trnch)
            PTR1D(dlat), ni, nclass)
 
    endif IF_ISBA
+
+
+   IF_CLASS: if (schmsol == 'CLASS') then
+       nmos = 0
+       call agvgclas(PTR1D(vegf),ALVSDAT, VGCLASS,PTR1D(ALVSC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ALNIDAT, VGCLASS,PTR1D(ALIRC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMXDAT,VGCLASS,PTR1D(LAIMAX),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMNDAT,VGCLASS,PTR1D(LAIMIN),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VGMASDAT,VGCLASS,PTR1D(VEGMA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ROOTDAT, VGCLASS,PTR1D(ROOTDP),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LN_Z0MDAT,VGCLASS,PTR1D(ZOLN), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),RSMINDAT,VGCLASS,PTR1D(STOMR), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),QA50DAT, VGCLASS,PTR1D(QA50),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDADAT, VGCLASS,PTR1D(VPDA),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDBDAT, VGCLASS,PTR1D(VPDB),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGADAT, VGCLASS,PTR1D(PSIGA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGBDAT, VGCLASS,PTR1D(PSIGB), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+! Now read DPTH from geophysical fields (KW)
+!       call agvgclas(PTR1D(vegf),ROOTDAT, VG000  ,PTR1D(SDEPTH),NI,1         , &
+!                     NCLASS,0,nmos,1)
+       call agvgmask(PTR1D(vegf),         VGCLASS,PTR1D(FCANMX),NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       IF (ctem_mode.gt.0) &
+       call agvgmaskc(PTR1D(vegf), VGCLASS,PTR1D(FCANCMX), NI, class_ic, &
+                      ctem_ICC, NCLASS,0,nmos,1)
+
+#define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and.  associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
+
+   MKPTR2D(zfcancmx,fcancmx)
+   MKPTR2D(zfcanmx,fcanmx)
+   MKPTR2D(zvegf,vegf)
+
+!
+!       Normalize FCANMX
+        DO i=1,ni
+!          IF (vege_fields.ne.'CTEM') then
+          IF (.not.any('fcancmx'==phyinread_list_s(1:phyinread_n))) then
+
+!         Sum up CLASS vegetation fractions
+          fcansum = 0.
+!         Do not count too small fractions - their other fields were not initialized!
+          DO J=1,class_ic+1
+            if (ZFCANMX(i,j).lt.critmask) then
+              IF (ctem_mode.gt.0.and.j.lt.class_ic+1) then
+                DO k=1,nol2pft(j)
+                  ZFCANCMX(i,(firstpft(j)+k-1))=0.
+                enddo
+              end if
+              ZFCANMX(i,j)=0.
+            end if
+            fcansum = fcansum + ZFCANMX(i,j)
+          ENDDO
+!         Add bare soil (desert, VF(24))
+!          fcansum = fcansum + zvegf(i,24)
+!          fcansum = fcansum + max(0.,zvegf(i,24))
+!         Normalize
+          if ( fcansum .ge. critmask ) then
+            DO J=1,class_ic+1
+              ZFCANMX(i,j) = ZFCANMX(i,j) / fcansum
+            ENDDO
+            IF (ctem_mode.gt.0) then
+              DO J=1,ctem_icc
+                ZFCANCMX(i,j) = ZFCANCMX(i,j) / fcansum
+              ENDDO
+            end if
+          end if
+
+          end if
+        ENDDO
+   endif IF_CLASS
+
+   IF_CLASSIC: if (schmsol == 'CLASSIC') then
+       nmos = 0
+       call agvgclas(PTR1D(vegf),ALVSDAT, VGCLASS,PTR1D(ALVSC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ALNIDAT, VGCLASS,PTR1D(ALIRC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMXDAT,VGCLASS,PTR1D(LAIMAX),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMNDAT,VGCLASS,PTR1D(LAIMIN),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VGMASDAT,VGCLASS,PTR1D(VEGMA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ROOTDAT, VGCLASS,PTR1D(ROOTDP),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LN_Z0MDAT,VGCLASS,PTR1D(ZOLN), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),RSMINDAT,VGCLASS,PTR1D(STOMR), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),QA50DAT, VGCLASS,PTR1D(QA50),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDADAT, VGCLASS,PTR1D(VPDA),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDBDAT, VGCLASS,PTR1D(VPDB),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGADAT, VGCLASS,PTR1D(PSIGA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGBDAT, VGCLASS,PTR1D(PSIGB), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+! Now read DPTH from geophysical fields (KW)
+!       call agvgclas(PTR1D(vegf),ROOTDAT, VG000  ,PTR1D(SDEPTH),NI,1         , &
+!                     NCLASS,0,nmos,1)
+       call agvgmask(PTR1D(vegf),         VGCLASS,PTR1D(FCANMX),NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       IF (ctem_mode.gt.0) &
+       call agvgmaskc(PTR1D(vegf), VGCLASS,PTR1D(FCANCMX), NI, class_ic, &
+                      ctem_ICC, NCLASS,0,nmos,1)
+
+#define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and.  associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
+
+   MKPTR2D(zfcancmx,fcancmx)
+   MKPTR2D(zfcanmx,fcanmx)
+   MKPTR2D(zvegf,vegf)
+
+!
+!       Normalize FCANMX
+        DO i=1,ni
+!          IF (vege_fields.ne.'CTEM') then
+          IF (.not.any('fcancmx'==phyinread_list_s(1:phyinread_n))) then
+
+!         Sum up CLASS vegetation fractions
+          fcansum = 0.
+!         Do not count too small fractions - their other fields were not initialized!
+          DO J=1,class_ic+1
+            if (ZFCANMX(i,j).lt.critmask) then
+              IF (ctem_mode.gt.0.and.j.lt.class_ic+1) then
+                DO k=1,nol2pft(j)
+                  ZFCANCMX(i,(firstpft(j)+k-1))=0.
+                enddo
+              end if
+              ZFCANMX(i,j)=0.
+            end if
+            fcansum = fcansum + ZFCANMX(i,j)
+          ENDDO
+!         Add bare soil (desert, VF(24))
+!          fcansum = fcansum + zvegf(i,24)
+!          fcansum = fcansum + max(0.,zvegf(i,24))
+!         Normalize
+          if ( fcansum .ge. critmask ) then
+            DO J=1,class_ic+1
+              ZFCANMX(i,j) = ZFCANMX(i,j) / fcansum
+            ENDDO
+            IF (ctem_mode.gt.0) then
+              DO J=1,ctem_icc
+                ZFCANCMX(i,j) = ZFCANCMX(i,j) / fcansum
+              ENDDO
+            end if
+          end if
+
+          end if
+        ENDDO
+   endif IF_CLASSIC
 
    return
 end subroutine inicover2

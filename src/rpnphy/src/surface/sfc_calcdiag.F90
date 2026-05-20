@@ -129,7 +129,7 @@ contains
       endif
       
       ! Common ISBA/SVS/CLASS accumulators
-      IF_ISBA_SVS_CLASS: if (schmsol == 'ISBA' .or. schmsol == 'SVS' .or. schmsol == 'CLASS') then
+      IF_ISBA_SVS_CLASS_CLASSIC: if (schmsol == 'ISBA' .or. schmsol == 'SVS' .or. schmsol == 'CLASS' .or. schmsol == 'CLASSIC') then
 
          IF_RESET: if (kount == 0 .or. lacchr) then
 
@@ -156,7 +156,7 @@ contains
             !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
             do k=1,nsurf+1
                do i=1,ni
-                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)  * dt ! in CRCM CODE (CG)
+                  zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)  !* dt ! in CRCM CODE (CG)
                   zdraintotaf(i,k)   = zdraintotaf(i,k)  + zdraintot(i,k)  * dt
                   ztrunofftot(i,k)   = zrunofftot(i,k)   + zdraintot(i,k)
                   ztrunofftotaf(i,k) = zrunofftotaf(i,k) + zdraintotaf(i,k)
@@ -166,7 +166,7 @@ contains
                enddo
             enddo
          ENDIF IF_KOUNT_NE_0
-      endif IF_ISBA_SVS_CLASS
+      endif IF_ISBA_SVS_CLASS_CLASSIC
 
 
       ! ISBA only accumulators/calc.
@@ -339,6 +339,73 @@ contains
          endif IF_ACCUMUL_CLASS
 
       endif IF_CLASS
+
+      ! CLASSIC only accumulators
+      IF_CLASSIC: if (schmsol == 'CLASSIC') then
+
+         ! Evaporation, sublimation, transpiration
+         MKPTR2D(zqfc   , qfc)
+         MKPTR2D(zqfcaf , qfcaf)
+         MKPTR1D(zqfcf  , qfcf)
+         MKPTR1D(zqfcfaf, qfcfaf)
+         MKPTR1D(zqfcl  , qfcl)
+         MKPTR1D(zqfclaf, qfclaf)
+         MKPTR1D(zqfg   , qfg)
+         MKPTR1D(zqfgaf , qfgaf)
+         MKPTR1D(zqfn   , qfn)
+         MKPTR1D(zqfnaf , qfnaf)
+
+         ! Reset accumulators at t=T+00hr
+         IF_RESET_CLASSIC: if (kount == 0 .or. &
+              (acchr > 0 .and. mod(step_driver-1, acchr) == 0) .or. &
+              (acchr == 0 .and. step_driver-1 == 0)) then
+
+            ! Reset accumulators at t=T+00hr
+            zoverflaf(:)    = 0.
+            zwfluxaf(:)     = 0.
+            zpotevaptraf(:) = 0.
+
+            zqfcaf(:,:)     = 0.
+            zqfcfaf(:)      = 0.
+            zqfclaf(:)      = 0.
+            zqfgaf(:)       = 0.
+            zqfnaf(:)       = 0.
+
+         endif IF_RESET_CLASSIC
+
+         ! Accumulate
+         IF_ACCUMUL_CLASSIC: if (kount /= 0) then
+            do i = 1, ni
+
+               !# Accumulation of drained water
+               !#  (soil base water flux, in kg/m2 or mm);
+               !#  factor 1000 is for density of water.
+!               zdrainaf(i) = zdrainaf(i) - 1000. * zdrain(i) * zrootdp(i)  !  Original Dorval line
+               zdrainaf(i) = zdrainaf(i) + zdrain(i) * dt      ! Changed by KW
+
+               !# Accumulation of surface runoff (in kg/m2 or mm)
+!               zoverflaf(i) = zoverflaf(i) + zoverfl(i)       !  Original Dorval line
+               zoverflaf(i) = zoverflaf(i) + zoverfl(i) * dt   ! Changed by KW
+
+               !# Accumulation of upwards surface water flux (in kg/m2 or mm)
+               zwfluxaf(i) = zwfluxaf(i) + zwflux(i) * dt
+
+               !# Accumulation of potential evapotranspiration (in kg/m2 or mm)
+               zpotevaptraf(i) = zpotevaptraf(i) + zpotevaptr(i) * dt
+
+            enddo
+
+            !# Accumulation of transpiration, sublimation, evaporation
+            zqfcaf(:,:) = zqfcaf(:,:) + zqfc(:,:) * dt
+            zqfcfaf(:)  = zqfcfaf(:)  + zqfcf(:)  * dt
+            zqfclaf(:)  = zqfclaf(:)  + zqfcl(:)  * dt
+            zqfgaf(:)   = zqfgaf(:)   + zqfg(:)   * dt
+            zqfnaf(:)   = zqfnaf(:)   + zqfn(:)   * dt
+
+
+         endif IF_ACCUMUL_CLASSIC
+
+      endif IF_CLASSIC
 
       ! CSLM only accumulators
       IF_CSLM: if (schmlake == 'CSLM') then

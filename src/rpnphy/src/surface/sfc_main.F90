@@ -383,6 +383,13 @@ function sfc_main2(trnch, kount, dt, ni, nk) result(F_istat)
               dt, kount, trnch, &
               ni_soil, nk-1, class_ig)
 
+      elseif (schmsol.eq.'CLASSIC') then
+
+         call classic_main(bus_soil, siz_soil, &
+              ptr_soil, nvarsurf, &
+              dt, kount, trnch, &
+              ni_soil, nk-1, class_ig)
+
       endif
       if (phy_error_L) return
 

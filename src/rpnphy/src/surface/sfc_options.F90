@@ -203,13 +203,15 @@ module sfc_options
    !# * 'ISBA' : Interaction Soil Biosphere Atmosphere (ISBA) land sfc scheme
    !# * 'SVS ' : Soil, Vegetation, and Snow (SVS) (Multibudget) land sfc scheme
    !# * 'CLASS': Canadian Land Surface Scheme (CLASS)
-   character(len=16) :: schmsol     = 'CLASS'
+   !# * 'CLASSIC': Candadian Land Surface Scheme including Biogeochemical cycles (CLASSIC)
+   character(len=16) :: schmsol     = 'CLASSIC'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(4) = (/ &
-        'NIL  ', &
-        'ISBA ', &
-        'SVS  ', &
-        'CLASS'  &
+   character(len=*), parameter :: SCHMSOL_OPT(5) = (/ &
+        'NIL    ', &
+        'ISBA   ', &
+        'SVS    ', &
+        'CLASS  ', &
+        'CLASSIC' &
         /)
 
    !# Urban surface processes
