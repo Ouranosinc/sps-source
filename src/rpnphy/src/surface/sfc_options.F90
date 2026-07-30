@@ -468,11 +468,11 @@ module sfc_options
    !# * 'SVS2' : Advanced version of the SVS land sfc scheme
    character(len=16) :: schmsol     = 'ISBA'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(5) = (/ &
-        'NIL ', &
-        'ISBA', &
-        'SVS ', &
-        'SVS2', &
+   character(len=5), parameter :: SCHMSOL_OPT(5) = (/ &
+        'NIL  ', &
+        'ISBA ', &
+        'SVS  ', &
+        'SVS2 ', &
         'CLASS' &
         /)
 
@@ -583,7 +583,6 @@ module sfc_options
    real              :: snow_emiss_const = -1.
    namelist /surface_cfgs/ snow_emiss
 
-<<<<<<< HEAD
    ! Two options to compute the thermal conductivity of soil (should be used only with soil freezing) 
    ! * PL1998       : Use the model from Peters-Lidard et al. (1998) for frozen soil that involve the Kersten number (Johanssen, 1975) 
    ! * TIAN2016     : Use the physical model from Tian et al. (2016) [https://doi.org/10.1111/ejss.12366]
@@ -594,12 +593,10 @@ module sfc_options
         'TIAN2016' &
         /)
    
-=======
    !# Maximum snow depth in meters
    real              :: snowmax      = -1.
    namelist /surface_cfgs/ snowmax
 
->>>>>>> 619fdbe (Setup qui compile)
    !#  Soil texture database/calculations for SVS land surface scheme
    !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE)
    !# * 'SLC    '   : 5 layers of sand & clay info from Soil Landscape of Canada (SLC)
