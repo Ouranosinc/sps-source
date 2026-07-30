@@ -274,6 +274,10 @@ module sfc_options
         'CRO'  &  
          /)
    
+   !# Depth of soil layers in [METERS] in CLASS land surface scheme (schmsol=CLASS)
+   real :: dp_class(MAX_NL_SVS) = -1.0
+   namelist /surface_cfgs/ dp_class
+
    !# Emissivity for ice (glacier and sea ice)
    !# * '_constant_' : A fixed floating point value used as a constant
    character(len=16) :: ice_emiss = '0.99'
@@ -289,6 +293,10 @@ module sfc_options
    !# Sea ice melting
    logical           :: icemelt     = .false.
    namelist /surface_cfgs/ icemelt
+
+   !# Maximum sea ice thickness in meters
+   real              :: icemax      = -1.
+   namelist /surface_cfgs/ icemax
 
    !# Implicit surface fluxes if .true.; explicit fluxes if .false.
    logical           :: impflx      = .false.
@@ -460,11 +468,12 @@ module sfc_options
    !# * 'SVS2' : Advanced version of the SVS land sfc scheme
    character(len=16) :: schmsol     = 'ISBA'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(4) = (/ &
-        'NIL ', &
-        'ISBA', &
-        'SVS ', &
-        'SVS2'  &
+   character(len=5), parameter :: SCHMSOL_OPT(5) = (/ &
+        'NIL  ', &
+        'ISBA ', &
+        'SVS  ', &
+        'SVS2 ', &
+        'CLASS' &
         /)
 
    !# Urban surface processes
@@ -584,6 +593,10 @@ module sfc_options
         'TIAN2016' &
         /)
    
+   !# Maximum snow depth in meters
+   real              :: snowmax      = -1.
+   namelist /surface_cfgs/ snowmax
+
    !#  Soil texture database/calculations for SVS land surface scheme
    !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE)
    !# * 'SLC    '   : 5 layers of sand & clay info from Soil Landscape of Canada (SLC)
@@ -998,6 +1011,38 @@ module sfc_options
    !# Adjust temperature diagnostic in TEB in the street  if .true.
    logical           :: urb_diagtemp = .false.
    namelist /surface_cfgs/ urb_diagtemp
+
+
+
+   !# CLASS & CTEM parameters
+   !# =======================
+   !# Number of soil layers in CLASS
+   integer           :: class_ig    = 16
+   namelist /surface_cfgs/ class_ig
+
+   !# Soil layer thickness in CLASS
+   real              :: schmsol_lev(200) = 0.0
+   namelist /surface_cfgs/ schmsol_lev
+
+   !# Dynamic vegetation (competition between plant types) within CTEM
+   logical           :: ctem_compete = .false.
+   namelist /surface_cfgs/ ctem_compete
+
+   !# Vegetation processes within CLASS
+   !# 0: computed by CLASS
+   !# 1: computed by CTEM
+   integer           :: ctem_mode   = 0
+   namelist /surface_cfgs/ ctem_mode
+
+   !# Carbon spinup in CTEM
+   !# 1   : no spinup
+   !# 2-10: enabled (higher numbers spin up soil carbon pool faster)
+   integer           :: ctem_spinfast = 1
+   namelist /surface_cfgs/ ctem_spinfast
+
+   !# Start with no vegetation (applies only if ctem_compete = .true.)
+   logical           :: ctem_startbare = .false.
+   namelist /surface_cfgs/ ctem_startbare
 
 contains
 
