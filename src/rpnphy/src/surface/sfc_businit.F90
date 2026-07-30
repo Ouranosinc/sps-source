@@ -19,6 +19,8 @@ subroutine sfc_businit(moyhr,ni,nk)
    use sfc_options
    use sfcbus_mod
    use svs_configs
+   use class_configs
+   use phymem, only: phymem_add
    implicit none
 !!!#include <arch_specific.hf>
    !@Object Establishes requirements in terms of variables in the 4 main buses
@@ -103,8 +105,53 @@ subroutine sfc_businit(moyhr,ni,nk)
         tsvavg, tvege,  vegh, vegl, vegtrans, vgctem, &
         wsoilm, wfcdp, wfcint, wsnv, &
         z0ha, z0hbg, z0hvg, z0mland, z0mlanden, z0mvg, z0mvh, z0mvhen, z0mvl, &
-        conddry, condsld, quartz, rhosoil, soilhcapz, soilcondz, &
-        tperm, tpsoil,wunfrz,watpond,maxpond
+        conddry, condsld, quartz, rhosoil, soilhcapz,soilhcapz_dry, soilcondz, &
+        tperm, tpsoil,watpond,maxpond
+
+
+   !--------   Speficic parameter FOR SVS -----------------
+   
+   integer :: condminfac, frootdyn, ksatnat, ksatnatc, wmpfac, wunfrz 
+
+   !!-------SVS multiplying coefficients for agricultural areas-------
+   integer :: grkmod_a,grkmod_aen,kasmod_a,kasmod_aen
+
+   !--------   Speficic parameter FOR SVS 2 -----------------
+   character(len=2) :: ns
+   integer ::  agingcoef,agingcoefen,algrv,emisgrv,egv,  legv,    &
+        hpsa,hpsv, husurfgv, hv_vl, hv_vh, &
+        hveglpol,hveglpolen,hvegapol, &
+        gfluxsa, gfluxsv,      &
+        esnc,esncaf, &
+        ler_vl, ler_vh, letr_vl, letr_vh, levl, levh,  & 
+        lfluxsa, lfluxsv, lwca, lwnetsa, lwnetsv,        &
+        er_vl, er_vh, esa, esv, etr_vl, etr_vh, qca, &
+        qgr, qgv, qveg, rainrate_vgh, resagrv,  &
+        resa_vl, resa_vh, gravelen, bulksoilen, ocen, &
+        rsnows_acc, rsnowsv_acc, psurfvha, skincond_vl, skyviewa, &
+        sncma, snoage_svs, snoagev_svs,  &
+        snodiamopt_svs, snodiamoptv_svs, &
+        snospheri_svs, snospheriv_svs,   &
+        snohist_svs,snohistv_svs,   &
+        snoma_svs, snomav_svs, &
+        snoden_svs, snodenv_svs,   &
+        snotype_svs, snotypev_svs, snowrate_vgh, &
+        subldrifta, subldriftv,     &
+        svs_wtg, &
+        swnetsa, swnetsv, swca,        &
+        tca, &
+        tpsoilv, tgroundv, &
+        tsnow_svs,tsnowv_svs,   &
+        tvegel,tvegeh,  &
+        vca,vca_drift, vegtransa, vgh_height,   &
+        vgh_dens, vgh_densen, &
+        wveg_vl, wveg_vh,     &       
+        wsnow_svs,wsnowv_svs, &
+        z0hgv,z0hvl, z0hvh 
+
+   integer :: phasef, phasem, phasefv, phasemv, deltat, deltatv, appheatcap, appheatcapv, tmax, tmaxv  
+
+   !---------------------------------------------------------------------
    !--------   FOR CLASS -----------------
    character(len=2) :: ncg, ncv, ncvp, nicc, niccp
    character(len=3) :: ncvxcg, niccxcg
@@ -255,7 +302,6 @@ subroutine sfc_businit(moyhr,ni,nk)
    PHYVAR2D1(glsea0,       'VN=glsea0       ;ON=GY  ;VD=sea ice fraction (unmodified)                                        ;VB=p1;IN=LG  ;MIN=0')
    PHYVAR2D1(icedp,        'VN=icedp        ;ON=I8  ;VD=sea ice thickness                                                    ;VB=p1        ;MIN=0')
    PHYVAR2D1(iceline,      'VN=iceline      ;ON=ICEL;VD=ice line                                                             ;VB=p'//iicel)
-   PHYVAR2D1(lakefr,       'VN=lakefr       ;ON=FU  ;VD=lake fraction                                                        ;VB=p0        ;MIN=0')
    PHYVAR3D1(qdiagtyp,     "VN=qdiagtyp     ;ON=DQST;VD=screen level specific humidity for each sfc type   ; MIN=0 ; VS=A*"//nagg//" ; VB=v0")
    PHYVAR3D1(qdiagtypv,    "VN=qdiagtypv    ;ON=DQSZ;VD=qdiagtyp for z0 vegetation-only ; MIN=0 ; VS=A*"//nagg//" ; VB=v0")
    PHYVAR2D1(skin_depth,   'VN=skin_depth   ;ON=SDEP;VD=sea surface cold skin depth                                          ;VB=p0')

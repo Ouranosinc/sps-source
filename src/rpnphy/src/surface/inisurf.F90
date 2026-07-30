@@ -206,14 +206,12 @@ subroutine inisurf4(pvars, kount, ni, nk)
    MKPTR2D(zz0,z0)
    MKPTR2D(zz0t,z0t)
 
-<<<<<<< HEAD
    !--- SVS multiplying coefficients for agricultural areas ----
    MKPTR1D(zgrkmod_a,grkmod_a)
    MKPTR1D(zgrkmod_aen,grkmod_aen)
    MKPTR1D(zkasmod_a,kasmod_a)
    MKPTR1D(zkasmod_aen,kasmod_aen)
    !-----------------------------------
-=======
    ! for CLASS
    if (schmsol == 'CLASS') then
       MKPTR1D(zsdepth,sdepth)
@@ -226,7 +224,6 @@ subroutine inisurf4(pvars, kount, ni, nk)
       MKPTR2D(zmexcw,excw)
       MKPTR2D(zmcmai,cmai)
    endif
->>>>>>> 619fdbe (Setup qui compile)
 
    
    ! Find the lowest value of z0m for vegetation classes if a
@@ -929,7 +926,7 @@ subroutine inisurf4(pvars, kount, ni, nk)
       !  Initialize the parameters that depend on vegetation
       if (any('vegf' == phyinread_list_s(1:phyinread_n)) .or. &
            (kntveg > 0 .and. mod(kount,kntveg) == 0)) then
-         call inicover2(kount, ni, trnch)
+         call inicover2(pvars, kount, ni)
       endif
 
       ! Make sure number of soil levels read is correct
@@ -1109,14 +1106,14 @@ subroutine inisurf4(pvars, kount, ni, nk)
 
       ! Read CLASS namelist 'CLASS_input_table'
       if (.not. CLASS_nml_read) then
-         if (trnch==1) then
+         if (kount==0) then
             call iniclass
             CLASS_nml_read = .true.
          endif
       endif
 
       ! Make sure the entry fields are coherent ...
-      call coherence3(ni, trnch)
+      call coherence3(pvars, ni)
 
    endif IF_CLASS
 
