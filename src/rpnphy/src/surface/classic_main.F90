@@ -32,6 +32,9 @@ subroutine classic_main (BUS, BUSSIZ, &
   use class_configs, only : CLASS_IC, CTEM_ICC
   use classicParams, only : nlat, ilg, ignd
 
+  use, intrinsic :: iso_fortran_env, only: r8=>real64
+
+
   implicit none
 
   ! Input parameters
@@ -278,8 +281,7 @@ subroutine classic_main (BUS, BUSSIZ, &
   integer, DIMENSION(:,:,:), ALLOCATABLE :: ITERCT
   integer, DIMENSION(:,:),   ALLOCATABLE :: ISAND,IORG
   REAL, DIMENSION(:,:), ALLOCATABLE :: PAIDAT,HGTDAT,ACVDAT,ACIDAT
-  REAL, DIMENSION(:,:), ALLOCATABLE :: TBARC ,TBARG ,TBARCS,TBARGS, &
-                                       THLIQC,THLIQG,THICEC,THICEG, &
+  REAL, DIMENSION(:,:), ALLOCATABLE :: THLIQC,THLIQG,THICEC,THICEG, &
                                        HCPC  ,HCPG  ,FROOT , FROOTS, GFLUX, &
                                        TCTOPC,TCBOTC,TCTOPG,TCBOTG
 !
@@ -315,7 +317,11 @@ subroutine classic_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ztdiagtyp , zqdiagtyp , zudiagtyp , zvdiagtyp
   real,pointer,dimension(:)   :: ztdiagtypv, zqdiagtypv, zudiagtypv, zvdiagtypv
 
-  real,pointer,dimension(:,:) :: THLIQ, THICE, TS, ZFCANMX, ZSAND, ZCLAY
+  real,pointer,dimension(:,:) :: THLIQ, THICE, ZFCANMX, ZSAND, ZCLAY
+  real,pointer,dimension(:,:) :: TSOIL_BUS ! real(4) directly from bus
+
+  real(r8), allocatable, dimension(:,:) :: TS, TBARC ,TBARG ,TBARCS,TBARGS ! real(8) needed by CLASSIC subroutines
+
   real,pointer,dimension(:,:) :: ZORGM, ZDELZW, ZZBOTW, ZTHPOR, ZTHLMIN
   real,pointer,dimension(:,:) :: ZTHLRET, ZPSISAT, ZBI, ZPSIWLT, ZHCPS
   real,pointer,dimension(:,:) :: ZTCS, ZTSFS, ZTHFC
@@ -677,6 +683,7 @@ subroutine classic_main (BUS, BUSSIZ, &
             HCPC  (N,IG),HCPG  (N,IG),FROOT (N,IG),FROOTS(N,IG), GFLUX (N,IG), &
             TCTOPC(N,IG),TCBOTC(N,IG),TCTOPG(N,IG),TCBOTG(N,IG), &
             ISAND (N,IG),IORG  (N,IG),ITERCT(N,6,50) )
+  allocate(TS(N,IG))
 !
   SURFLEN = N
 !  IDAY = JULIAND( DT , KOUNT, DATE )
@@ -870,8 +877,10 @@ subroutine classic_main (BUS, BUSSIZ, &
        QSWINV(I) = 0.5*FLUSOL(I)
        QSWINI(I) = 0.5*FLUSOL(I)
      else
-       QSWINV(I) = ZSW4TOTL(I,1)
-       QSWINI(I) = ZSW4TOTL(I,2) + ZSW4TOTL(I,3) + ZSW4TOTL(I,4)
+       QSWINV(I) = 0.5*FLUSOL(I)
+       QSWINI(I) = 0.5*FLUSOL(I)
+       !QSWINV(I) = ZSW4TOTL(I,1)
+       !QSWINI(I) = ZSW4TOTL(I,2) + ZSW4TOTL(I,3) + ZSW4TOTL(I,4)
      endif
      if (ISNOALB == 0) then ! Use the existing snow albedo and transmission
        FSSB(I,1) = QSWINV(I)
@@ -934,7 +943,8 @@ subroutine classic_main (BUS, BUSSIZ, &
     FCS       (1:N) => bus( x( FCOVCS ,1,1 ) : )         ! output fractional coverage for canopy+snow
     FG        (1:N) => bus( x( FCOVG  ,1,1 ) : )         ! output fractional coverage for bare ground
     FGS       (1:N) => bus( x( FCOVGS ,1,1 ) : )         ! output fractional coverage for snow
-    TS        (1:N,1:IG) => bus( x( TSOIL  ,1,1 ) : )    !  inout Temperature of soil layers [K]
+    TSOIL_BUS (1:N,1:IG) => bus( x( TSOIL  ,1,1 ) : )    !  inout Temperature of soil layers [K]
+    TS = real(TSOIL_BUS, r8)                                ! Convert TS from real(4) to real(8) for CLASSIC subroutines
     THLIQ     (1:N,1:IG) => bus( x( WSOIL  ,1,1 ) : )    !  inout Volumetric liquid water content of soil layers [m^3/m^3]
     THICE     (1:N,1:IG) => bus( x( ISOIL  ,1,1 ) : )    !  inout Volumetric frozen water content of soil layers [m^3/m^3]
     XSNO      (1:N) => bus( x( SNOMA  ,1,1 ) : )         !  inout Mass of snow pack \f$[kg m^{-2}] (W_s)
@@ -1236,6 +1246,7 @@ subroutine classic_main (BUS, BUSSIZ, &
 !print*,'class_main Physics input'
 !print*,'class_main FGS            :',minval(FGS),maxval(FGS),sum(FGS)/(N)
 !print*,'class_main TS             :',minval(TS),maxval(TS),sum(TS)/(N*IG)
+!print*,'class_main TSOIL_BUS      :',minval(TSOIL_BUS),maxval(TSOIL_BUS),sum(TSOIL_BUS)/(N*IG)
 !print*,'class_main QA             :',minval(QA),maxval(QA),sum(QA)/(N)
 !print*,'class_main PS             :',minval(PS),maxval(PS),sum(PS)/(N)
 !print*,'class_main TA             :',minval(TA),maxval(TA),sum(TA)/(N)
@@ -1848,7 +1859,15 @@ subroutine classic_main (BUS, BUSSIZ, &
                            ZRB, RC, RCS, FRAINC, FSNOWC, FRAICS, FSNOCS, &  
                            LAIPAIRatio, LAISPAISRatio,ZFSNOW, maxSNO, &
                            SNOLIM, stddevTopography, fracSnowParam, TCSNOW) 
-
+  do J=1,IG
+      do I=1,N
+      if (TS(I,J) > 1.e5 .or. TS(I,j) < -1.e5) then
+        write(*,*) 'BAD TS FOUND AFTER warterBudgetDriver:'
+        write(*,*) 'I=',I,' J=',J
+        write(*,*) 'TS=',TS(I,J)
+      endif
+    end do
+  end do
 !print*,'class_main before CLASSW'
               !  CALL CLASSW  ( &
               !           THLIQ,  THICE,  TS,     ZTCAN,  ZRCAN,  ZSCAN, &
@@ -2053,32 +2072,32 @@ ZFVAP     = EVAPO/RHOAIR
 !print *,'class_main max OVRFLW:', maxval(ZOVRFLW)
 !print *,'class_main max BASFLW:', maxval(ZBASFLW)
 
-if (kount==0 .and. trnch==1) then
+! if (kount==0 .and. trnch==1) then
 
-print*,'class_main'
-print*,'class_main Physics output'
-print*,'class_main ALVIS_SOL      :',minval(ALVIS_SOL),maxval(ALVIS_SOL),sum(ALVIS_SOL)/(N)
-print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
-print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
-print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
-print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
-print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
-print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)
-print*,'class_main ZFRV           :',minval(ZFRV),maxval(ZFRV),sum(ZFRV)/(N)
-print*,'class_main HBL            :',minval(HBL),maxval(HBL),sum(HBL)/(N)
-print*,'class_main ZILMO          :',minval(ZILMO),maxval(ZILMO),sum(ZILMO)/(N)
-print*,'class_main QS             :',minval(QS),maxval(QS),sum(QS)/(N)
-print*,'class_main ZTSURF         :',minval(ZTSURF),maxval(ZTSURF),sum(ZTSURF)/(N)
-print*,'class_main SQ             :',minval(SQ),maxval(SQ),sum(SQ)/(N)
-print*,'class_main ST             :',minval(ST),maxval(ST),sum(ST)/(N)
-print*,'class_main SU             :',minval(SU),maxval(SU),sum(SU)/(N)
-print*,'class_main SV             :',minval(SV),maxval(SV),sum(SV)/(N)
-print*,'class_main ZTSRAD         :',minval(ZTSRAD),maxval(ZTSRAD),sum(ZTSRAD)/(N)
-print*,'class_main ZFL            :',minval(ZFL),maxval(ZFL),sum(ZFL)/(N)
-print*,'class_main ZFTEMP         :',minval(ZFTEMP),maxval(ZFTEMP),sum(ZFTEMP)/(N)
-print*,'class_main ZFVAP          :',minval(ZFVAP),maxval(ZFVAP),sum(ZFVAP)/(N)
+! print*,'class_main'
+! print*,'class_main Physics output'
+! print*,'class_main ALVIS_SOL      :',minval(ALVIS_SOL),maxval(ALVIS_SOL),sum(ALVIS_SOL)/(N)
+! print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
+! print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
+! print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
+! print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
+! print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
+! print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)
+! print*,'class_main ZFRV           :',minval(ZFRV),maxval(ZFRV),sum(ZFRV)/(N)
+! print*,'class_main HBL            :',minval(HBL),maxval(HBL),sum(HBL)/(N)
+! print*,'class_main ZILMO          :',minval(ZILMO),maxval(ZILMO),sum(ZILMO)/(N)
+! print*,'class_main QS             :',minval(QS),maxval(QS),sum(QS)/(N)
+! print*,'class_main ZTSURF         :',minval(ZTSURF),maxval(ZTSURF),sum(ZTSURF)/(N)
+! print*,'class_main SQ             :',minval(SQ),maxval(SQ),sum(SQ)/(N)
+! print*,'class_main ST             :',minval(ST),maxval(ST),sum(ST)/(N)
+! print*,'class_main SU             :',minval(SU),maxval(SU),sum(SU)/(N)
+! print*,'class_main SV             :',minval(SV),maxval(SV),sum(SV)/(N)
+! print*,'class_main ZTSRAD         :',minval(ZTSRAD),maxval(ZTSRAD),sum(ZTSRAD)/(N)
+! print*,'class_main ZFL            :',minval(ZFL),maxval(ZFL),sum(ZFL)/(N)
+! print*,'class_main ZFTEMP         :',minval(ZFTEMP),maxval(ZFTEMP),sum(ZFTEMP)/(N)
+! print*,'class_main ZFVAP          :',minval(ZFVAP),maxval(ZFVAP),sum(ZFVAP)/(N)
 
-endif
+! endif
 
 ! FILL THE ARRAYS TO BE AGGREGATED LATER IN S/R AGREGE
   CALL FILLAGG ( BUS, BUSSIZ, PTSURF, PTSURFSIZ, INDX_SOIL, SURFLEN )
@@ -2090,5 +2109,7 @@ endif
               TCTOPC,TCBOTC,TCTOPG,TCBOTG, &
               ISAND, IORG,  ITERCT )
 !
+  TSOIL_BUS = real(TS, kind(TSOIL_BUS)) ! Convert TS back to real(4) to give back to surface bus
+  deallocate(TS)
   RETURN
 END

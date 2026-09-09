@@ -32,7 +32,7 @@ endif
 
     if (pos > 0) then
       base_path = cwd_path(1:pos + 7)
-      table_p = trim(base_path) // 'input/cfg_0000/CLASS_input_table'
+      table_p = trim(base_path) // 'input/cfg_0000/CLASSIC_input_table'
     end if
   else
     print *, "Error getting current working directory. Error code:", ierror
