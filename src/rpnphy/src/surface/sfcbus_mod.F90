@@ -607,7 +607,8 @@ module sfcbus_mod
       ! M.A.- Need to include in alphabetical order !
       SFCVAR(lakefr, 'lakefr')
       SFCVAR(riverfr, 'riverfr')
-      SFCVAR(gridarea, 'gridarea')
+      ! SFCVAR(gridarea, 'gridarea')
+      SFCVAR(dxdy, 'dxdy') ! MLab mod (same as gridarea)
       SFCVAR(lakearea, 'lakearea')
       SFCVAR(lakd, 'lakd')
       SFCVAR(rofinlak, 'rofinlak')
