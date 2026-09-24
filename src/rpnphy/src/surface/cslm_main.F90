@@ -335,7 +335,8 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
    ZDLON    (1:n) => bus( x(dlon,1,1)         : )  !Longitude
    ZREFM    (1:n) => bus( x(zusl,1,1)         : )
    ZREFH    (1:n) => bus( x(ztsl,1,1)         : )
-   ZGRIDAREA(1:n) => bus( x(gridarea,1,1)     : )         !Grid cell surface area (m2)
+   ! ZGRIDAREA(1:n) => bus( x(gridarea,1,1)     : )         !Grid cell surface area (m2)
+   ZGRIDAREA(1:n) => bus( x(dxdy,1,1)         : )         ! MLab mod (same as gridarea)
    ZLAKEAREA(1:n) => bus( x(lakearea,1,1)     : )         !Lake surface area (km2)
    ZLAKD(1:n)     => bus( x(lakd,1,1)         : )         !Lake depth (average in grid cell) (m)
    ZLAKEFR  (1:n) => bus( x(lakefr,1,1)     : )           !Fraction of grid cell covered by lakes
@@ -741,6 +742,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
              HWARM=HCPW*(TRPCN(I)-0.0)*DELT*ROFN(I)/RHOW
              HFREZ=RHOICE*CLHMLT*ROFICE
              TLAK(I,1)=TLAK(I,1) + (HFREZ+HWARM)/(HCAP*DELZLK)
+
 !mdm         LKICEH(I)=LKICEH(I)+ROFICE
           ENDIF
 !----------------------------------------------------------------------------------------
