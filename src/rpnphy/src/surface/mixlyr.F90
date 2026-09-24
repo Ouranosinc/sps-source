@@ -2,7 +2,7 @@
                     HDPTH,TKE,DELU,FQU,BFLX,DISS,EXPW,QSTAR,       &
                     FSHEAR,FENTRA,HLAK,LLAK,GRED,TRAN,             &
                     CQ1A,CQ1B,CQ2A,CQ2B,CQ3A,CQ3B,RHOMIX,          &
-                    LSTAR,QSENS,QEVAP,LKICEH)
+                    LSTAR,QSENS,QEVAP,LKICEH,TKECN)
 !=======================================================================
 !     * FEB 3/12  - M.MACKAY.   SUPPRESS BUOYANCY PRODUCTION UNDER ICE
 !     *
@@ -24,7 +24,8 @@
       INTEGER,DIMENSION(ILG) :: NLAK
       REAL,DIMENSION(ILG) :: QSTAR,Q0,EXPW,DTEMP,HDPTH,TKE,DELU,DISS, &
                              BFLX,FQU,FSHEAR,FENTRA,HLAK,             &
-                             LLAK,GRED,TRAN,RHOMIX,LKICEH
+                             LLAK,GRED,TRAN,RHOMIX,LKICEH,TKECN
+                             ! MLab mod (add TKECN as variable)
 !
 ! ----* INPUT FIELDS *------------------------------------------------
 !
@@ -39,7 +40,7 @@
            HCPOM,HCPSND,HCPCLY,SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,&
            TCGLAC,CLHMLT,CLHVAP,DELTA,CGRAV,CKARM,CPD,AS,ASX,CI,BS,  &
            BETA,FACTN,HMIN
-      REAL TKECN,TKECF,TKECE,TKECS,HDPTHMIN,                         &
+      REAL TKECF,TKECE,TKECS,HDPTHMIN,                               &
            TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,           &
            TKECL,DUMAX
       COMMON /CLASS1/ DELT,TFREZ                                       
@@ -47,9 +48,9 @@
       COMMON /CLASS4/ HCPW,HCPICE,HCPSOL,HCPOM,HCPSND,HCPCLY,        &
                       SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,         &
                       TCGLAC,CLHMLT,CLHVAP
-      COMMON /LAKECON/ TKECN,TKECF,TKECE,TKECS,HDPTHMIN,             &
+      COMMON /LAKECON/TKECF,TKECE,TKECS,HDPTHMIN,                    &
                       TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,&
-                      TKECL,DUMAX
+                      TKECL,DUMAX  ! MLab mod (removed TKECN)
 !
 ! ----* LOCAL VARIABLES *--------------------------------------------
 !
@@ -61,7 +62,7 @@
 !
 ! ----* LOCAL PARAMETERS *--------------------------------------------
 !
-      CN=TKECN
+      !CN=TKECN  ! MLab mod now directly using TKECN
       CF=TKECF
       CE=TKECE
       CS=TKECS
@@ -103,7 +104,7 @@
 !-----------------------------------------------------------------------
 ! (2) Mechanical Forcing 
 !
-       FQU(I)= 0.5*CN*CN*CN*USTAR(I)*USTAR(I)*USTAR(I)     !m3/s3
+       FQU(I)= 0.5*TKECN(I)*TKECN(I)*TKECN(I)*USTAR(I)*USTAR(I)*USTAR(I)!m3/s3
 
 !-----------------------------------------------------------------------
 ! (3) Dissipation and transport of TKE to thermocline

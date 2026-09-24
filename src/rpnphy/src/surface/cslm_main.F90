@@ -89,12 +89,12 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
       logical, parameter :: WATER_TDIAGLIM = .false.
 
 ! CSLM common blocks
-      REAL TKECN,TKECF,TKECE,TKECS,HDPTHMIN, DUMAX, QAMIN,              &
+      REAL TKECF,TKECE,TKECS,HDPTHMIN, DUMAX, QAMIN,              &
            TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,TKECL
-      COMMON /LAKECON/ TKECN,TKECF,TKECE,TKECS,HDPTHMIN,TKEMIN,DELMAX, &
+      COMMON /LAKECON/ TKECF,TKECE,TKECS,HDPTHMIN,TKEMIN,DELMAX, &
                       DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,TKECL,DUMAX, QAMIN                                      
-      DATA  TKECN,      TKECF,      TKECE,      TKECS,      TKECL      &
-      /     1.33,       0.25,       1.15,       0.20,      0.2350/ 
+      DATA  TKECF,      TKECE,      TKECS,      TKECL      &  ! MLab mod (removed TKECN 1.33)
+      /     0.25,       1.15,       0.20,      0.235/ 
       DATA  HDPTHMIN, TKEMIN,  DELMAX,  DELMIN,  DELZLK,  DELSKIN      &
       /     0.5,      1.0E-12, 5.0,     0.5,     1.0,     0.050 /   
       DATA  DHMAX,    DUMAX,   EMSW,  QAMIN                             &
@@ -214,7 +214,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 ! ----* LAKE MODEL VARIABLES *----------------------------------------
 !
       INTEGER,DIMENSION(N) :: NLAK
-      REAL,DIMENSION(N) :: HLAK, LLAK, BLAK, RC1, RC2, RUNFRAC
+      REAL,DIMENSION(N) :: HLAK, LLAK, RC1, RC2, RUNFRAC  !BLAK, RC1, RC2, RUNFRAC
       REAL,DIMENSION(N) :: VPD, TADP, PADRY, RHOAIR, RHOSNI, R,TR,S,TS,    &
                            RRATE, SRATE, PCPIN
       REAL,DIMENSION(N,NLAKMAX) :: QFLX, FFLX
@@ -225,6 +225,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
            ZLAKEAREA
       real,pointer,dimension(:,:) ::  TLAK
       REAL,POINTER,DIMENSION(:) :: LSTD, LSTF, LFXI, LFXO, zevlak
+      real,pointer,dimension(:) ::  BLAK, TKECN, ALWC ! MLab mod
 
 ! ----* INPUT FORCING DATA   *----------------------------------------
       real,pointer,dimension(:) ::  PRES, QA, TA, UWIND, VWIND, QSWIN, QLWIN, RT
@@ -279,6 +280,9 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !=============================================================================================
    SURFLEN = M
 ! Lake variables
+   BLAK     (1:n) => bus( x(laketransp,1,1)   : )  !lake transparency (extinction) ! MLab mod
+   TKECN    (1:n) => bus( x(tkecn,1,1)        : )  !lake wind-driven stirring coefficient ! MLab ajout
+   ALWC     (1:n) => bus( x(albwc,1,1)        : )  !lake free-water albedo coefficient ! MLab ajout
 !! T0       (1:n) => bus( x(twater,1,1)       : )  !lake sfc temp         (K)
    T0       (1:n) => bus( x(lst,1,1)          : )  !lake sfc temp         (K)
    TKE      (1:n) => bus( x(tke,1,1)          : )  !lake mixed layer tke  (m2/s2)
@@ -382,7 +386,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
         ELSE
           LLAK(I)=SQRT(ZLAKEAREA(I)*1000000.0) ! Lake fetch length scale (square-root of lake surface area in m2)
         ENDIF
-        BLAK(I)=BLAKCON
+        !BLAK(I)=BLAKCON ! MLab mod
         NLAK(I)=MIN(NLAKMAX, NINT(HLAK(I)/DELZLK))
         NLAK(I)=MAX(NLAKMIN,NLAK(I))
         RC1 (I)=RC1CON
@@ -606,8 +610,8 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
 !
       DO 145 I=1,N
 
-        ALBW(I)=0.045/MAX(CSZ(I),0.1)          !std value for water !MLab mod (0.045)
-        !ALBW(I)=0.07*(1.3 + 0.5/(CSZ(I)+0.15))     !ajout M.MacKay    !std value for water inc. diffuse part
+        !ALBW(I)=0.045/MAX(CSZ(I),0.1)          !std value for water !MLab mod (0.045)
+        ALBW(I)=ALWC(I)*(1.3 + 0.5/(CSZ(I)+0.15))     !ajout M.MacKay    !std value for water inc. diffuse part
 
 !
         ALBI(I)=0.08+0.44*(LKICEH(I))**0.28    !thin ice albedo (Vavrus et al 1996)
@@ -1063,7 +1067,7 @@ subroutine cslm_main(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, n, 
                     HDPTH,TKE,DELU,FQU,BFLX,DISS,EXPW,FSGL,  &
                     FSHEAR,FENTRA,HLAK,LLAK,GRED,TRAN,       &
                     CQ1A,CQ1B,CQ2A,CQ2B,CQ3A,CQ3B,RHOMIX,    &
-                    FLGL,HFSL,HEVL,LKICEH)
+                    FLGL,HFSL,HEVL,LKICEH,TKECN)
 !
 !----------------------------------------------------------------------------------------
 !
