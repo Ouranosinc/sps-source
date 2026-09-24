@@ -84,7 +84,8 @@ subroutine sfc_businit(moyhr,ni,nk)
    !--------   FOR CSLM -----------------
    integer :: tke, hdpth, lkiceh, sniceh, expw, dtemp, delu, gred, rhomix, tsed, roficeh, &
               snol, rhosnol, tsnowl, albsnol, wsnowl, tlak, lst, hlaksil, &
-             ficl, lakd, lfxi, lfxo, lstd, lstf, lakearea, lakefr, riverfr, evlak
+             ficl, lakd, lfxi, lfxo, lstd, lstf, lakearea, lakefr, riverfr, evlak, &
+             laketransp, tkecn, albwc  ! MLab mod
             ! gridarea, & PB removed in favor of dxdy
    character(len=2) :: nlklv
    !--------   FOR SVS and SVS2 -----------------
@@ -785,10 +786,10 @@ subroutine sfc_businit(moyhr,ni,nk)
 
 
    IF_LAKES: if (schmlake == 'CSLM') then
-      PHYVAR3D1(tlak,          'VN=tlak        ;ON=TLAK;   VD=lake temperature profile                 ;VS=A*'//nlklv//'    ;VB=p1')
-
-      
-
+      PHYVAR2D1(laketransp,   'VN=laketransp   ;ON=LTRN    ;VD=Lake water transparency                                       ;VB=p1')
+      PHYVAR2D1(tkecn,        'VN=tkecn        ;ON=TKEC    ;VD=lake wind-driven stirring coefficient                         ;VB=p1')
+      PHYVAR2D1(albwc,        'VN=albwc        ;ON=ALWC    ;VD=lake free-water albedo coefficient                            ;VB=p1')
+      PHYVAR3D1(tlak,         'VN=tlak         ;ON=TLAK    ;VD=lake temperature profile                 ;VS=A*'//nlklv//'    ;VB=p1')
       PHYVAR2D1(tke,          'VN=tke          ;ON=TKEL    ;VD=lake mixed layer tke                                          ;VB=p1')
       PHYVAR2D1(rofinlak,     'VN=rofinlak     ;ON=ROFL    ;VD=runoff input to lake                                          ;VB=p1')
       PHYVAR2D1(rofinlakaf,   'VN=rofinlakaf   ;ON=RLAF    ;VD=accumulated runoff input to lake                              ;VB=p0')

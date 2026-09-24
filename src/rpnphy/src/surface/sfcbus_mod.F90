@@ -621,6 +621,8 @@ module sfcbus_mod
       SFCVAR(hlaksil, 'hlaksil')
       SFCVAR(tlak, 'tlak')
       SFCVAR(tke, 'tke')
+      SFCVAR(tkecn, 'tkecn') ! MLab mod
+      SFCVAR(albwc, 'albwc') ! MLab mod
       SFCVAR(lst, 'lst')
       SFCVAR(lsten, 'lsten')
       SFCVAR(hdpth, 'hdpth')
@@ -639,6 +641,7 @@ module sfcbus_mod
       SFCVAR(tsnowl, 'tsnowl')
       SFCVAR(albsnol, 'albsnol')
       SFCVAR(wsnowl, 'wsnowl')
+      SFCVAR(laketransp, 'laketransp')
 
       !! SVS multiplying coefficients to represent the effect of ploughing (kasmod_a)
       !! and of Tile Drains (grkmod_a) in agricultural areas.

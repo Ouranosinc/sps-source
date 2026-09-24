@@ -54,7 +54,7 @@
            HCPOM,HCPSND,HCPCLY,SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,&
            TCGLAC,CLHMLT,CLHVAP,CGRAV,CKARM,CPD,AS,ASX,CI,BS,        &
            BETA,FACTN,HMIN
-      REAL TKECN,TKECF,TKECE,TKECS,HDPTHMIN,                         &
+      REAL TKECF,TKECE,TKECS,HDPTHMIN,                               &
            TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,           &
            TKECL,DUMAX
       COMMON /CLASS1/ DELT,TFREZ                                       
@@ -64,9 +64,9 @@
       COMMON /CLASS4/ HCPW,HCPICE,HCPSOL,HCPOM,HCPSND,HCPCLY,        &
                       SPHW,SPHICE,SPHVEG,SPHAIR,RHOW,RHOICE,         &
                       TCGLAC,CLHMLT,CLHVAP
-      COMMON /LAKECON/ TKECN,TKECF,TKECE,TKECS,HDPTHMIN,              &
+      COMMON /LAKECON/ TKECF,TKECE,TKECS,HDPTHMIN,                    &
                        TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,&
-                       TKECL,DUMAX
+                       TKECL,DUMAX   ! MLab mod (TKECN removed)
 !
 ! ----* LOCAL VARIABLES *--------------------------------------------
 !

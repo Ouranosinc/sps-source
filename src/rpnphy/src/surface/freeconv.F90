@@ -17,12 +17,12 @@
 ! ----* CLASS COMMON BLOCKS *------------------------------------------
 !
       REAL DELT,TFREZ
-      REAL TKECN,TKECF,TKECE,TKECS,TKECL,HDPTHMIN,                 &
+      REAL TKECF,TKECE,TKECS,TKECL,HDPTHMIN,                 &
            TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,DHMAX,DUMAX
       COMMON /CLASS1/ DELT,TFREZ                                       
-      COMMON /LAKECON/ TKECN,TKECF,TKECE,TKECS,HDPTHMIN,           &
+      COMMON /LAKECON/ TKECF,TKECE,TKECS,HDPTHMIN,           &
                        TKEMIN,DELMAX,DELMIN,EMSW,DELZLK,DELSKIN,   &
-                       DHMAX,TKECL,DUMAX
+                       DHMAX,TKECL,DUMAX  ! MLab mod (TKECN removed)
 !
 ! ----* LOCAL VARIABLES *---------------------------------------------
 !

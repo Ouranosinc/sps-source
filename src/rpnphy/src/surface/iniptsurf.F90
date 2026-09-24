@@ -48,7 +48,7 @@ function iniptsurf5() result(F_istat)
    integer, parameter :: nb_water = 4
    integer, parameter :: nb_ice = 2
    integer, parameter :: nb_urb = 95
-   integer, parameter :: nb_lake = 26
+   integer, parameter :: nb_lake = 27
    integer, parameter :: nb_river = 4
 
    character(len=16) :: agrege_out(nb_agrege), &
@@ -128,7 +128,7 @@ function iniptsurf5() result(F_istat)
         'TLAK', 'LST', 'TKE',  'HDPTH', 'LKICEH', 'SNICEH', 'EXPW',  &
         'DTEMP', 'DELU', 'GRED', 'RHOMIX', 'TSED', 'ROFICEH',           &
         'SNOL', 'RHOSNOL', 'TSNOWL', 'ALBSNOL', 'WSNOWL', 'HLAKSIL',    &
-        'ROFINLAK', 'FICL', 'LFXI', 'LFXO', 'LSTD', 'LSTF', 'EVLAK'  &
+        'ROFINLAK', 'FICL', 'LFXI', 'LFXO', 'LSTD', 'LSTF', 'EVLAK', 'LAKETRANSP'  &
         /
   ! liste des variables de sortie du modules "river"
    data river_out    / &
