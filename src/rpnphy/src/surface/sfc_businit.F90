@@ -608,13 +608,7 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(legv,         'VN=legv         ;ON=LEGV;VD=latent heat flux over ground below high vegetation                ;VB=v0')
       PHYVAR2D1(ler_vl,       'VN=ler_vl       ;ON=LRVL;VD=latent heat flux from low veg. leaves                             ;VB=v0')
       PHYVAR2D1(ler_vh,       'VN=ler_vh       ;ON=LRVH;VD=latent heat flux from high veg. leaves                            ;VB=v0')
-      PHYVAR2D1(les,        <<<<<<< cslm-GL-6.3
-              snol, rhosnol, tsnowl, albsnol, wsnowl, tlak, lst, hlaksil, gridarea, &
-             ficl, lakd, lfxi, lfxo, lstd, lstf, lakearea, lakefr, riverfr, evlak, &
-             laketransp, tkecn, albwc  ! MLab mod 
-=======
-  
->>>>>>> 6.3  'VN=les          ;ON=LS  ;VD=latent heat flux over snow                                        ;VB=v0')
+      PHYVAR2D1(les,          'VN=les          ;ON=LS  ;VD=latent heat flux over snow                                        ;VB=v0')
       PHYVAR2D1(lesv,         'VN=lesv         ;ON=LSV ;VD=latent heat flux over snow-under-veg                              ;VB=v0')
       PHYVAR2D1(letr_vl,      'VN=letr_vl      ;ON=LTVL;VD=latent heat of evapotransp. from low veg                          ;VB=v0')
       PHYVAR2D1(letr_vh,      'VN=letr_vh      ;ON=LTVH;VD=latent heat of evapotransp. from high veg                         ;VB=v0')
