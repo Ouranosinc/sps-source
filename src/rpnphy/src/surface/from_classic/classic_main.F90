@@ -112,7 +112,7 @@ subroutine classic_main (BUS, BUSSIZ, &
 !028       F. Roberge (Aug 2022) -Add evaporation output (evapotot) as calculated by CLASS
 !
 !Object
-!          Driver of the surface scheme CLASS
+!          Driver of the surface scheme CLASSIC
 !
 !Arguments
 !
