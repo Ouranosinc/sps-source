@@ -67,7 +67,7 @@
 !     * CALCULATION OF ATMOSPHERIC INPUT VARIABLES.
 !
       DO 100 I=IL1,IL2
-          EA=QA(I)*PRESSG(I)/(0.622+0.378*QA(I))                    
+          EA=max(QA(I),1.e-6)*PRESSG(I)/(0.622+0.378*QA(I))                    
           IF(TA(I).GE.TFREZ) THEN                                  
               CA=17.269                                           
               CB=35.86                                           
@@ -140,6 +140,7 @@
                   IF(RPCP(I).GT.0.0) TRPCP(I)=MAX((TA(I)-TFREZ),0.0) 
                   SPCP(I)=SRATE(I)/RHOSNI(I)
                   IF(SPCP(I).GT.0.0) TSPCP(I)=MIN((TA(I)-TFREZ),0.0)
+                  PCPR(I)=RRATE(I)+SRATE(I)
               ENDIF
           ENDIF
 100   CONTINUE

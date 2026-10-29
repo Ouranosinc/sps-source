@@ -89,7 +89,11 @@ To compile and run SPS, you will need:
 - An MPI implementation such as OpenMPI (with development package),
 - OpenMP support (optional)
 - (BLAS,LAPACK) or equivalent mathematical/scientific library (ie: MKL), with development package,
+<<<<<<< HEAD
 - basic Unix utilities such as cmake (version 3.30 minimum), bash, sed, etc.
+=======
+- basic Unix utilities such as cmake (version 3.20 minimum), bash, sed, etc.
+>>>>>>> 09f2d2b (Add a README file for external users)
 
 ## Data for examples
 

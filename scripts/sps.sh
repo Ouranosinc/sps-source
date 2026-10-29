@@ -249,6 +249,7 @@ set_tsk_cfg() {
 # cfg_${__cfg_id}/outcfg.out	 			${__cfg_dir}/outcfg.out
 # cfg_${__cfg_id}/dyn_input_table		${SPS_dyn_intable:-${__share_dir}/dyn_input_table}
 # cfg_${__cfg_id}/physics_input_table	${SPS_phy_intable:-${__share_dir}/physics_input_table}
+# cfg_${__cfg_id}/CLASS_input_table	${CLASS_intable:-${__share_dir}/CLASS_input_table}
 EOF
    if [[ -f ${__cfg_dir}/tape1 ]] ; then
        cat >> ${__tsk_file} <<EOF

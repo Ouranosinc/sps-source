@@ -39,6 +39,7 @@ subroutine inisurf4(pvars, kount, ni, nk)
    use initown, only: initown3
    use phymem, only: phyvar
    use svs_configs
+   use class_configs
    implicit none
 !!!#include <arch_specific.hf>
 #include <rmn/msg.h>
@@ -55,6 +56,13 @@ subroutine inisurf4(pvars, kount, ni, nk)
    integer, intent(in) :: ni, nk, kount
 
    !@Author Stephane Belair (February 1999)
+   !@Revisions
+   ! 001 K. Winger (UQAM/ESCER) (Sep 2019) - Add lake fraction
+   !                                       - Make sure all surface fractions are above critmask/-lac
+   !                                       - Adjust MG to VF
+   !                                       - Only set tsrad to tsoil if tsrad was not read
+   !                                       - Add CLASS section
+   !
    !@NOTE: This subroutine expects snow depth in cm.
    !       The snow depth is converted in metre (in this s/r)
    !       when the 'entry variables' are transfered to the
@@ -75,8 +83,9 @@ subroutine inisurf4(pvars, kount, ni, nk)
    real, save :: tauf   = 0.24
    real, save :: tauday = 24.
 
-   real    :: tempsum
-   integer :: i, k, nk1
+   real    :: tempsum, land_frac
+   integer :: i, k, nk1, l
+   real*8  :: sum_poids_8
 
    real, pointer, dimension(:) :: &
         zagingcoef,zagingcoefen, &
@@ -98,6 +107,14 @@ subroutine inisurf4(pvars, kount, ni, nk)
         zalvis, zclay, zclayen, zsand, zsanden, zsnodp, &
         zgravel, zgravelen, zbulksoil, zbulksoilen, zoc, zocen, &
         ztglacier, ztmice, ztmoins, ztsoil, zvegf, zz0, zz0t
+
+   ! Added for CLASS
+   integer :: tsoil_id,wsoil_id,isoil_id, sand_id,clay_id
+   real, pointer, dimension(:,:) :: zwsoil
+   real, pointer, dimension(:)   :: zsdepth, zxdrain, zz0oro
+   real, pointer, dimension(:,:) :: zrootdp, zorgm, zmcmai, zmexcw
+
+   logical, save :: CLASS_nml_read  = .false.
 
    !!---- SVS multiplying coefficients for agricultural areas ------
    real, pointer, dimension(:) :: zgrkmod_a, zgrkmod_aen
@@ -195,6 +212,18 @@ subroutine inisurf4(pvars, kount, ni, nk)
    MKPTR1D(zkasmod_a,kasmod_a)
    MKPTR1D(zkasmod_aen,kasmod_aen)
    !-----------------------------------
+   ! for CLASS
+   if (schmsol == 'CLASS') then
+      MKPTR1D(zsdepth,sdepth)
+      MKPTR1D(zxdrain,xdrain)
+      MKPTR1D(zz0oro,z0oro)
+
+      MKPTR2D(zwsoil,wsoil)
+      MKPTR2D(zrootdp,rootdp)
+      MKPTR2D(zorgm,orgm)
+      MKPTR2D(zmexcw,excw)
+      MKPTR2D(zmcmai,cmai)
+   endif
 
    
    ! Find the lowest value of z0m for vegetation classes if a
@@ -250,7 +279,42 @@ subroutine inisurf4(pvars, kount, ni, nk)
    !
    !
 !VDIR NODEP
-   
+   ! Make sure all surface fractions are above critmask/-lac and adjust MG to VF
+   if (any('vegf' == phyinread_list_s(1:phyinread_n))) then
+      do i=1,ni
+         ! Ocean fraction need to be twice as large as 'critmask'
+         ! so it does not completely disappear when sea ice appears
+         if (zvegf(i,1) < critmask*2.) zvegf(i,1) = 0.
+
+         ! Glacier fraction
+         if (zvegf(i,2) < critmask   ) zvegf(i,2) = 0.
+
+         ! Lake fraction
+         if (zvegf(i,3) < critlac    ) then
+            ! If there is an ocean fraction convert lake into ocean
+            if (zvegf(i,1) > 0. ) zvegf(i,1) = zvegf(i,1) + zvegf(i,3)
+            zvegf(i,3) = 0.
+         endif
+
+         ! Land fraction
+         land_frac = 1. - zvegf(i,1) - zvegf(i,2) - zvegf(i,3)
+         if (land_frac  < critmask   ) then
+            land_frac = 0.
+            zvegf(i,4:26)  = 0.
+         endif
+
+         ! Make sure the sum of all surface fractions is still 1.
+         sum_poids_8 = land_frac + zvegf(i,1) + zvegf(i,2) + zvegf(i,3)
+         sum_poids_8 = 1. / sum_poids_8
+         do l = 1,26
+           zvegf(i,l) = zvegf(i,l) * sum_poids_8
+         enddo
+
+         ! Recalculate MG
+         zmg(i) = 1. - zvegf(i,1) - zvegf(i,3)
+   enddo
+   endif
+
    if (any('alvis' == phyinread_list_s(1:phyinread_n))) then
       do i=1,ni
          nk1 = size(zalvis,2)
@@ -284,7 +348,8 @@ subroutine inisurf4(pvars, kount, ni, nk)
       enddo
    endif
 
-   if (any('tsoil' == phyinread_list_s(1:phyinread_n))) then
+   if (any('tsoil' == phyinread_list_s(1:phyinread_n)) .and. &
+          all('tsrad' /= phyinread_list_s(1:phyinread_n))) then
       do i=1,ni
          ztsrad(i) = ztsoil(i,1)
       enddo
@@ -380,6 +445,33 @@ subroutine inisurf4(pvars, kount, ni, nk)
          end do
       end do
    endif
+
+   ! Set snow depth for points without specific surface fractions to 0. (KW)
+   ! No snow over water
+   zsnodp(:,indx_water) = 0.0
+   do i=1,ni
+     ! Glaciers
+     if ( zvegf(i,2) .lt. critmask ) zsnodp(i,indx_glacier) = 0.0
+     ! Either ocean, glacier or lake => no soil
+     if ( zvegf(i,1) + zvegf(i,2) + zvegf(i,3) .ge. 1-critmask ) zsnodp(i,indx_soil   ) = 0.0
+   end do
+
+   ! Limit sea ice thickness (KW)
+   if ( icemax.ge.0.0 .and. any('icedp' == phyinread_list_s(1:phyinread_n))) then
+      do i=1,ni
+         zicedp(i) = min(zicedp(i), icemax)
+      end do
+   endif
+
+   ! Limit snow depth (KW)
+   if ( snowmax.ge.0.0 .and. any('snodp' == phyinread_list_s(1:phyinread_n))) then
+      do k=1,nsurf+1
+         do i=1,ni
+            zsnodp(i,k) = min(zsnodp(i,k), snowmax)
+         end do
+      end do
+   endif
+
 
    !========================================================================
    !                             for lakes only
@@ -818,6 +910,212 @@ subroutine inisurf4(pvars, kount, ni, nk)
    !  would need to be processed within initown() to implement this support.
    if (kount == 0 .and. schmurb == 'TEB') &
         call initown3(pvars, ni)
+
+
+   !========================================================================
+   !                       for CLASS/CTEM only
+   !========================================================================
+!print *,'inisurf: trnch =',trnch
+!print *,'inisurf: zsand(1,:):',zsand(1,:)
+!print *,'inisurf: zsand(:, 1):',zsand(:, 1)
+!print *,'inisurf: zsand(:,16):',zsand(:,16)
+!print *,'inisurf: zclay(:, 1):',zclay(:, 1)
+!print *,'inisurf: zclay(:,16):',zclay(:,16)
+   IF_CLASS: if (schmsol == 'CLASS') then
+
+      !  Initialize the parameters that depend on vegetation
+      if (any('vegf' == phyinread_list_s(1:phyinread_n)) .or. &
+           (kntveg > 0 .and. mod(kount,kntveg) == 0)) then
+         call inicover2(pvars, kount, ni)
+      endif
+
+      ! Make sure number of soil levels read is correct
+      ! -----------------------------------------------
+
+      if (any('tsoil' == phyinread_list_s(1:phyinread_n)) ) then
+
+         ! Find sand & clay id
+         tsoil_id = 0
+         wsoil_id = 0
+         isoil_id = 0
+         do k=1,phyinread_n
+            if (phyinread_list_s(k) == 'tsoil') tsoil_id = k
+            if (phyinread_list_s(k) == 'wsoil') wsoil_id = k
+            if (phyinread_list_s(k) == 'isoil') isoil_id = k
+            if (tsoil_id /= 0 .and. wsoil_id /= 0 .and. isoil_id /= 0) exit  ! All IDs found -> exit loop
+         end do
+         if (tsoil_id == 0 .or. wsoil_id == 0 .or. isoil_id == 0) then
+            call msg(MSG_ERROR,'(inisurf) I0, I1, and/or I2 not read')
+            return
+         endif
+
+         ! Make sure number of soil levels read is correct
+         if (phyinread_list_nk(tsoil_id) /= class_ig .or. &
+             phyinread_list_nk(wsoil_id) /= class_ig .or. &
+             phyinread_list_nk(isoil_id) /= class_ig ) then
+            call msg(MSG_ERROR,'(inisurf) I0, I1, and/or I2: wrong number of levels read')
+            return
+         endif
+      endif
+
+      ! Copy read sand & clay into all levels
+      ! -------------------------------------
+      if (any('sand' == phyinread_list_s(1:phyinread_n)) .and. &
+          any('clay' == phyinread_list_s(1:phyinread_n)) ) then
+
+         ! Find sand & clay id
+         sand_id = 0
+         clay_id = 0
+         do k=1,phyinread_n
+            if (phyinread_list_s(k) == 'sand') sand_id = k
+            if (phyinread_list_s(k) == 'clay') clay_id = k
+            if (sand_id /= 0 .and. clay_id /= 0) exit
+         end do
+!print *,'inisurf: sand_id,clay_id:',sand_id,clay_id
+!print *,'inisurf: sand_nk,clay_nk:',phyinread_list_nk(sand_id),phyinread_list_nk(clay_id)
+         if (sand_id == 0 .or. clay_id == 0) then
+            call msg(MSG_ERROR,'(inisurf) sand and/or clay not read')
+            return
+         endif
+
+         ! Copy read lowest read sand level into all levels below
+         ! If number of levels read is 1, field is in lowest level, class_ig ...
+         if (phyinread_list_nk(sand_id) == 1) then
+            do i=1,ni
+               zsand(i,1                           :class_ig-1) = zsand(i,class_ig)
+            end do
+         ! ... otherwise the field is in the top n levels
+         else
+            do i=1,ni
+               zsand(i,phyinread_list_nk(sand_id)+1:class_ig  ) = zsand(i,phyinread_list_nk(sand_id))
+            end do
+         endif
+
+         ! Copy read lowest read clay level into all levels below
+         ! If number of levels read is 1, field is in lowest level, class_ig ...
+         if (phyinread_list_nk(clay_id) == 1) then
+            do i=1,ni
+               zclay(i,1                           :class_ig-1) = zclay(i,class_ig)
+            end do
+         ! ... otherwise the field is in the top n levels
+         else
+            do i=1,ni
+               zclay(i,phyinread_list_nk(clay_id)+1:class_ig  ) = zclay(i,phyinread_list_nk(clay_id))
+            end do
+         endif
+!print *,'inisurf: zsand(:, 1):',zsand(:, 1)
+!print *,'inisurf: zsand(:, 2):',zsand(:, 2)
+!print *,'inisurf: zsand(:, 3):',zsand(:, 3)
+!print *,'inisurf: zsand(:, 4):',zsand(:, 4)
+!print *,'inisurf: zsand(:, 5):',zsand(:, 5)
+!print *,'inisurf: zsand(:, 6):',zsand(:, 6)
+!print *,'inisurf: zsand(:, 7):',zsand(:, 7)
+!print *,'inisurf: zsand(:,15):',zsand(:,15)
+!print *,'inisurf: zsand(:,16):',zsand(:,16)
+!print *,'inisurf: zclay(:, 1):',zclay(:, 1)
+!print *,'inisurf: zclay(:, 2):',zclay(:, 2)
+!print *,'inisurf: zclay(:, 3):',zclay(:, 3)
+!print *,'inisurf: zclay(:,15):',zclay(:,15)
+!print *,'inisurf: zclay(:,16):',zclay(:,16)
+
+         ! Initialize organic matter to zero
+         zorgm  = 0.
+         zmcmai = 0.
+         zmexcw = 0.
+
+
+         ! Adjust sand & clay values
+         do k=1,class_ig
+            do i=1,ni
+
+               if (zmg(i).lt.critmask) then
+                  ! OVER WATER...
+                  zsand  (i,k)    = 0.0
+                  zclay  (i,k)    = 0.0
+               else
+                  ! OVER LAND
+                  if (zsand(i,k)+zclay(i,k).lt.critexture) then
+                     !                If no sand and clay component
+                     !                attribute to these points characteristics
+                     !                of typical loamy soils
+                     zsand(i,k) = 35.
+                     zclay(i,k) = 35.
+                  else
+                     !                 Minimum of 1% of sand and clay
+                     zsand(i,k) =  max( zsand(i,k) , 1.0)
+                     zclay(i,k) =  max( zclay(i,k) , 1.0)
+
+                     ! If the sum of sand + clay is greater than 100% ...
+                     if ( zsand(i,k)+zclay(i,k).gt.100 ) then
+                        ! ... reduce sand & clay  percentage proportionally
+                        tempsum= zsand(i,k) + zclay(i,k)
+                        zsand(i,k) = zsand(i,k)/tempsum * 100.
+                        zclay(i,k) = zclay(i,k)/tempsum * 100.
+                     endif
+                  endif
+               endif
+
+            enddo
+         enddo
+
+      endif ! if sand/clay got read
+
+      do i=1,ni
+
+         ! orographic roughness length
+         if (any('z0oro' == phyinread_list_s(1:phyinread_n))) then
+            ! Re-initialize Z0M and Z0M to Z0oro
+            if (any('z0en' == phyinread_list_s(1:phyinread_n))) then
+               zz0 (i,indx_soil   ) = max(zz0oro(i),z0min)
+               zz0t(i,indx_soil   ) = max(zz0en(i),z0min)
+            endif
+
+            zz0oro (i) = max(zz0oro(i),z0min)
+         else
+            zz0oro (i) = max(zz0en(i),z0min)
+         endif
+!zz0oro (i) = z0min
+
+         ! Set minimum soil moisture to 0.04
+         do k=1,class_ig
+            zwsoil(i,k)= max(0.04,zwsoil(i,k))
+         enddo
+
+         ! If soil is frozen set liquid water content to 0.04
+         do k=1,class_ig
+            if (ztsoil(i,k).lt.273.15) zwsoil(i,k)=0.04
+         enddo
+
+         ! Set drainage index for water flow at bottom of soil profile
+         zxdrain(i) = 1.0 - zvegf(i,23)
+
+         ! Keep depth to bedrock between 0.38 and 3.0 m (from Vincent Fortin)
+         !zsdepth(i) = max(0.38, zsdepth(i))
+         !zsdepth(i) = min(3.00, zsdepth(i))
+         ! Set minimum depth to bedrock to 0.1 m
+         ! (Since neither Diana nor Joe Melton think Vincen't limits are necessary changed to (KW))
+         zsdepth(i) = max(0.10, zsdepth(i))
+
+
+         ! Make sure root depth does not go beyond depth to bedrock
+         do k=1,class_ic
+           zrootdp(i,k) = min(zrootdp(i,k), zsdepth(i))
+         enddo
+
+      enddo
+
+      ! Read CLASS namelist 'CLASS_input_table'
+      if (.not. CLASS_nml_read) then
+         if (kount==0) then
+            call iniclass
+            CLASS_nml_read = .true.
+         endif
+      endif
+
+      ! Make sure the entry fields are coherent ...
+      call coherence3(pvars, ni)
+
+   endif IF_CLASS
 
    return
 end subroutine inisurf4

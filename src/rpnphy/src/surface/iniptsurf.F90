@@ -43,7 +43,7 @@ function iniptsurf5() result(F_istat)
 #include <rmn/msg.h>
 #include <rmnlib_basics.hf>
 
-   integer, parameter :: nb_agrege = 48
+   integer, parameter :: nb_agrege = 50
    integer, parameter :: nb_glaciers = 1
    integer, parameter :: nb_water = 4
    integer, parameter :: nb_ice = 2
@@ -67,8 +67,9 @@ function iniptsurf5() result(F_istat)
         'ALFAQ'    , 'ALFAT'    , 'ALVIS'    , 'BM'       , 'BT'       , &
         'EMISR'    , 'FC'       , 'FRV'      , 'FTEMP'    , 'FV'       , &
         'FVAP'     , 'HST'      , 'ILMO'     , &
-        'QDIAG'    , 'QSURF'    , 'RUNOFFTOT', 'SNODP'    , 'TDIAG'    , &
-        'TSURF'    , 'UDIAG'    , 'VDIAG'    , &
+        'QDIAG'    , 'QSURF'    , 'RUNOFFTOT', 'DRAINTOT' , 'SNODP'    , &
+        'EVAPOTOT' , &
+        'TDIAG'    , 'TSURF'    , 'UDIAG'    , 'VDIAG'    , &
         'QDIAGTYP' , 'TDIAGTYP' , 'UDIAGTYP' , 'VDIAGTYP' , &
         'QDIAGTYPV', 'TDIAGTYPV', 'UDIAGTYPV', 'VDIAGTYPV', &
         'YUTCISUN' , 'YUTCISHADE' ,                                      &
